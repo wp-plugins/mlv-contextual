@@ -15,17 +15,17 @@ A vitrine pode ser inserida automaticamente acima ou abaixo do post. Você não 
 
 == Installation ==1. Baixe e descompacte o plugin
 2. Envie o arquivo mlv_contextual.php para a pasta wp-content/plugins do seu Wordpress
-3. Ative no painel de controle== Frequently Asked Questions === O que é o ID de afiliado do Mercado Livre?É um número que você deve gerar para trackear os cliques nas ofertas. Para isso faça o login na sua conta do Mercado Livre, entre em ferramentas, e clique em "Link Personalizado".= Depois de ativado e configurado, como faço para as ofertas aparecerem?
+3. Ative no painel de controle== Frequently Asked Questions ==* O que é o ID de afiliado do Mercado Livre?É um número que você deve gerar para trackear os cliques nas ofertas. Para isso faça o login na sua conta do Mercado Livre, entre em ferramentas, e clique em "Link Personalizado".* Depois de ativado e configurado, como faço para as ofertas aparecerem?
 
 Você deve definir alguma palavra chave para o post em questão, através do campo MLV-Contextual, na própria área de edição do post.
 
 == Screenshots ==
 
 Exemplo de vitrine contextualizada:<br/>
-<img src="http://tecnoblog.net/wp-content/uploads/2008/03/mlv_n73.jpg" />
+http://tecnoblog.net/wp-content/uploads/2008/03/mlv_n73.jpg
 
 Campo para inserir palavras chave:<br/>
-<img src="http://tecnoblog.net/wp-content/uploads/2008/05/mlv_campo.jpg" />
+http://tecnoblog.net/wp-content/uploads/2008/05/mlv_campo.jpg
 
 == Histórico ==
 
@@ -36,6 +36,7 @@ Versão 1.5 - 21/05/2008
 
 
 Versão 1.3.1 - 24/03/2008
+
 * Novo nome. Agora ao invés de ML Vitrine Contextual, o plugin se chama MLV Contextual.<br/>
 * O link das imagens agora aponta para uma lista de ofertas. Isto aumentou a conversão significativamente.<br/>
 * Adicionado a função Fopen. Agora o usuário pode escolher se quer usar Curl ou Fopen.<br/>
