@@ -21,10 +21,10 @@ Você deve definir alguma palavra chave para o post em questão, através do cam
 
 == Screenshots ==
 
-Exemplo de vitrine contextualizada:
+Exemplo de vitrine contextualizada:<br/>
 <img src="http://tecnoblog.net/wp-content/uploads/2008/03/mlv_n73.jpg" />
 
-Campo para inserir palavras chave:
+Campo para inserir palavras chave:<br/>
 <img src="http://tecnoblog.net/wp-content/uploads/2008/05/mlv_campo.jpg" />
 
 == Histórico ==
