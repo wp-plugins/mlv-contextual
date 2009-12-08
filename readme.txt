@@ -24,11 +24,11 @@ http://tecnoblog.net/wp-content/uploads/2008/03/mlv_n73.jpg
 Campo para inserir palavras chave:<br/>
 http://tecnoblog.net/wp-content/uploads/2008/05/mlv_campo.jpg
 
-== Histórico ==Versão 2.0b1 - 11 e 12/2009* Nova função para limpar Keywords;<br/>* Auto Fopen/Curl;<br/>* Multipaís;<br/>* Tradução área de admin para espanhol;<br/>* Func. MLV apenas em posts antigos;<br/>* Funções do loop xml voltaram para o arquivo principal;<br/>* Quando nenhuma palavra chave é especificada, o MLV_Contextual automaticamente exibe as ofertas mais buscadas / vendidas do Mercado Livre.<br/>Versão 2.0a - 11/2008* Correção do Bug onde as imagens não apareciam em alguns hosts;<br/>* Inclusão de parcelamento Mercado Pago;<br/>* Deleta os custom fields quando o post é deletado. DB fica limpa;<br/>* Correção do Bug que duplica custom fields;<br/>* CSS em arquivo separado para deixar a página mais leve;<br/>* Alterado o título da vitrine em "Settings";<br/>* Adicionado suporte ao Plugin "Palavras de Monetização";<br/>* Funções do loop xml colocadas em um arquivo separado.<br/>
+== Histórico ==Versão 2.0b1 - 11 e 12/2009* Nova função para limpar Keywords;<br/>* Auto Fopen/Curl;<br/>* Multipaís;<br/>* Tradução área de admin para espanhol;<br/>* Func. MLV apenas em posts antigos;<br/>* Funções do loop xml voltaram para o arquivo principal;<br/>* Quando nenhuma palavra chave é especificada, o MLV_Contextual automaticamente exibe as ofertas mais buscadas / vendidas do Mercado Livre.<br/>Versão 2.0a - 11/2008* Correção do Bug onde as imagens não apareciam em alguns hosts;<br/>* Inclusão de parcelamento Mercado Pago;<br/>* Deleta os custom fields quando o post é deletado. DB fica limpa;<br/>* Correção do Bug que duplica custom fields;<br/>* CSS em arquivo separado para deixar a página mais leve;<br/>* Alterado o título da vitrine em "Settings";<br/>* Adicionado suporte ao Plugin "Palavras de Monetização";<br/>* Funções do loop xml colocadas em um arquivo separado.<br/>
 
 Versão 1.5 - 21/05/2008
 
-* Adicionado campo para inserção de palavras chave, direto da área de edição de posts do WordPress.<br/>
+* Adicionado campo para inserção de palavras chave, direto da área de edição de posts do WordPress;<br/>
 * Recurso de Comparação de Preços no Buscapé foi descontinuado.<br/>
 
 
