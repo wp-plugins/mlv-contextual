@@ -1,12 +1,30 @@
 <?php
 /*
 Plugin Name: MLV Contextual
-Version: 1.5
+Version: 2.0b1
 Plugin URI: http://tecnoblog.net/archives/plugin-mercado-livre-vitrine-contextual-para-wordpress.php
 Description: Exibe uma vitrine de ofertas contextuais com anúncios do Mercado Livre em HTML.
 Author: Thiago Mobilon
 Author URI: http://tecnoblog.net/
 
+Versão 2.0b1 - 11 e 12/2009
+* Nova função para limpar Keywords
+* Auto Fopen/Curl
+* Multipaís
+* Tradução área de admin para espanhol
+* Func. MLV apenas em posts antigos
+* Funções do loop xml voltaram para o arquivo principal
+* Quando nenhuma palavra chave é especificada, o MLV_Contextual automaticamente exibe as ofertas mais buscadas / vendidas do Mercado Livre;
+* FALTA: caixa mover admin / CSS Style Vert / Multiple styles / JS Styles
+
+Versão 2.0a1 - 11/2008
+* Correção do Bug onde as imagens não apareciam em alguns hosts
+* Inclusão de parcelamento Mercado Pago
+* Deleta os custom fields quando o post é deletado. DB fica limpa.
+* Correção do Bug que duplica custom fields
+* CSS em arquivo separado para deixar a página mais leve
+* Alterado o título da vitrine em "Settings"
+* Funções do loop xml colocadas em um arquivo separado
 
 Versão 1.3.1 - 24/03/2008
 * Novo nome. Agora ao invés de ML Vitrine Contextual, o plugin se chama MLV Contextual.
@@ -18,7 +36,7 @@ Versão 1.3.1 - 24/03/2008
 * Adicionado filtro que remove caracteres inúteis do título das ofertas. Desta forma a vitrine polui menos o blog.
 
 
---  Copyright 2007 @ 2008  Thiago Mobilon (contato@tecnoblog.net)
+--  Copyright 2007 @ 2009  Thiago Mobilon (mobilon@tecnoblog.net)
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,128 +55,233 @@ Versão 1.3.1 - 24/03/2008
 */
 
 $mlv_options=array(
+  'mlv_pais'=>'mlb',
+  'mlv_ctxwords'=>'mlvc',
+  'mlv_vititle'=>'Ofertas Relacionadas',
+  'mlv_time' => '0',
   'mlv_autoshowlocal'=>'under',
   'mlv_cant'=>'3',
   'mlv_encode'=>'n',
-  'mlv_preco'=>'y',
   'mlv_encode'=>'n',
   'mlv_function'=>'c',
-  'mlv_css'=>'
-  /*Vitrine ao todo:*/
-  #tabela_ml {
-  text-align:center;
-  width:100%;
-  margin:0;
-  }
-  
-  /*Cada quadrado de oferta*/
-  .celula_ml {
-  text-align:center;
-  padding: 0 3px;
-  }
-  
-  /*Configurações da imagem*/
-  .celula_ml img{
-  border:none;
-  width:90px;
-  height:90px;
-  margin-bottom:2px;
-  }
-  
-  /*Título das ofertas*/
-  .title_ml {
-  font-size:12px;
-  line-height:120%;
-  }
-  
-  /*Preço das ofertas*/
-  .preco_ml {
-  color:#3982C6;
-  font-size:11px;
-  font-weight:700;
-  margin:2px 0 0;
-  }
-'
 );
 
 	$options_pms = get_option('mlv_options');
 	if (!$options_pms) add_option('mlv_options', $mlv_options);
 	else $mlv_options = $options_pms;
 
+$pais = $mlv_options['mlv_pais'];
+
+	switch ($pais) {
+	case 'mla':
+	$urlml = 'mercadolibre.com.ar';
+	$urlmlista ='listado.mercadolibre.com.ar';
+	include_once ('lang/es_AR.php');
+	break;
+	case 'mlb':
+	$urlml = 'mercadolivre.com.br';
+	$urlmlista ='lista.mercadolivre.com.br';
+	include_once ('lang/pt_BR.php');
+	break;
+	case 'mlc':
+	$urlml = 'mercadolibre.cl';
+	$urlmlista ='listado.mercadolibre.cl';
+	include_once ('lang/es_AR.php');
+	break;
+	case 'mlo':
+	$urlml = 'mercadolibre.com.co';
+	$urlmlista ='listado.mercadolibre.com.co';
+	include_once ("lang/es_AR.php");
+	break;
+	case 'mlm':
+	$urlml = 'mercadolibre.com.mx';
+	$urlmlista ='listado.mercadolibre.com.mx';
+	include_once ('lang/es_AR.php');
+	break;
+	case 'mlv':
+	$urlml = 'mercadolibre.com.ve';
+	$urlmlista ='listado.mercadolibre.com.ve';
+	include_once ('lang/es_AR.php');
+	break;
+	}
+
 // output textarea to easily add tags in admin menu (addition to the post form)
+add_action('simple_edit_form', 'mlv_contextual_input');
+add_action('edit_form_advanced', 'mlv_contextual_input');
+add_action('edit_page_form', 'mlv_contextual_input');
+
 function mlv_contextual_input() {
-	global $post;
+	global $post, $pais, $urlml, $urlmlista, $lang;
 
 	$mlv_id = get_post_meta($post->ID, 'mlv_id', true);  
 	$mlv_minpr = get_post_meta($post->ID, 'mlv_minpr', true);
 	$mlv_word = get_post_meta($post->ID, 'mlv_word', true);
 	
-	echo '<div id="tagsdiv" class="postbox"><h3><a class="togbox">+</a> MLV_Contextual</h3><div class="inside"><p id="jaxtag"><span id="ajaxtag"><b>Palavra chave</b>:<br/><input type="text" name="mlv_word" id="mlv_word" size="50%" value="' . $mlv_word . '" /><input type="hidden" name="bunny-key" id="bunny-key" value="' . wp_create_nonce('bunny') . '" /><span class="howto">a palavra chave que mais tem a ver com o post</span><br/><b>ID de categoria</b>:<br/><input type="text" name="mlv_id" id="mlv_id" size="50%" value="' . $mlv_id . '" /><input type="hidden" name="bunny-key" id="bunny-key" value="' . wp_create_nonce('bunny') . '" /><span class="howto">ex: "1648" para "Informática" <a href="http://www.mercadolivre.com.br/jm/ml.allcategs.AllCategsServlet" title="Lista de categorias do Mercado Livre">Veja aqui os IDs de cada categoria</a>.</span><br/><b>Pre&ccedil;o m&iacute;nimo</b>:<br/><input type="text" name="mlv_minpr" id="mlv_minpr" size="50%" value="' . $mlv_minpr . '" /><input type="hidden" name="bunny-key" id="bunny-key" value="' . wp_create_nonce('bunny') . '" /><span class="howto">apenas exibir ofertas com valor acima deste</span></span></p><div id="tagchecklist"></div></div></div>';
+	echo "<div id=\"mlvcontinsert\" class=\"postbox\" ><div class=\"handlediv\" title=\"Click to toggle\"></div><h3 class='hndle'><span>MLV_Contextual</span></h3><div class=\"inside\"><p id=\"jaxtag\"><span id=\"ajaxtag\"><b>".$lang['palavra-chave']."</b>:<br/><input type=\"text\" name=\"mlv_word\" id=\"mlv_word\" size=\"50%\" value=\"".$mlv_word."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['palavra-mais-tem']."</span><br/><b>ID de categoria</b>:<br/><input type=\"text\" name=\"mlv_id\" id=\"mlv_id\" size=\"50%\" value=\"".$mlv_id."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['1648-info']." <a href=\"http://www.".$urlml."/jm/ml.allcategs.AllCategsServlet\" title=\"".$lang['lista-categorias']."\">".$lang['veja-ids']."</a>.</span><br/><b>".$lang['preco-min']."</b>:<br/><input type=\"text\" name=\"mlv_minpr\" id=\"mlv_minpr\" size=\"50%\" value=\"".$mlv_minpr."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['apenas-acima']."</span></span></p></div></div>";
 
+}
+
+//Function to clean Keywords
+function trat($var){
+ 
+ $var = strtolower($var);
+ $var = trim($var);
+ $var = ereg_replace("[áàâãª]","a",$var); 
+ $var = ereg_replace("[éèê]","e",$var); 
+ $var = ereg_replace("[íìî]","i",$var); 
+ $var = ereg_replace("[óòôõº]","o",$var); 
+ $var = ereg_replace("[úùû]","u",$var); 
+ $var = str_replace("ç","c",$var);
+ $var = str_replace("_"," ",$var);
+ $var = str_replace("-"," ",$var);
+ $var = str_replace(",","",$var);
+ $var = str_replace("&","e",$var);
+ $var = str_replace("?","",$var);
+ $var = str_replace('"','',$var);
+ $var = str_replace('/','',$var);
+ $var = str_replace("'","",$var);
+ 
+ return $var;
+ 
 }
 
 // general custom field update function
-function mlv_contextual_update($id)
-{
+add_action('save_post', 'mlv_contextual_update', 1, 2);
+add_action('edit_post', 'mlv_contextual_update');
+add_action('publish_post', 'mlv_contextual_update');
+function mlv_contextual_update($post_id) {
+	global $mlv_options, $count_keywords, $topkw_key, $pais, $urlml, $urlmlista;
 
   // authorization
-	if ( !current_user_can('edit_post', $id) )
-		return $id;
+	if ( !current_user_can('edit_post', $post_id) )
+		return $post_id;
 	// origination and intention
 	if ( !wp_verify_nonce($_POST['bunny-key'], 'bunny') )
-		return $id;
-		
-	$setting_word = $_POST['mlv_word'];
-	$meta_exists = update_post_meta($id, 'mlv_word', $setting_word);
+		return $post_id;
 	
-	$setting_id = $_POST['mlv_id'];
-	$meta_exists = update_post_meta($id, 'mlv_id', $setting_id);
+	/*
+	//hack para corrigir duplicados
+	if (!$post || $post->post_type == 'revision') {
+	return;
+	}*/
 	
-	$setting_minpr = $_POST['mlv_minpr'];
-	$meta_exists = update_post_meta($id, 'mlv_minpr', $setting_minpr);
+	$setting_word = trim($_POST['mlv_word']);
+	$setting_id = trim($_POST['mlv_id']);
+	$setting_minpr = trim($_POST['mlv_minpr']);
 	
-	if(!$meta_exists)
+	if(!update_post_meta($post_id, 'mlv_word', $setting_word))
 	{
-		add_post_meta($id, 'mlv_word', $setting_word);
-		add_post_meta($id, 'mlv_id', $setting_id);
-		add_post_meta($id, 'mlv_minpr', $setting_minpr);
+		add_post_meta($post_id, 'mlv_word', $setting_word, true);
 	}
+	if(!update_post_meta($post_id, 'mlv_id', $setting_id))
+	{
+		add_post_meta($post_id, 'mlv_id', $setting_id, true);
+	}
+	if(!update_post_meta($post_id, 'mlv_minpr', $setting_minpr))
+	{
+		add_post_meta($post_id, 'mlv_minpr', $setting_minpr, true);
+	}
+	
+	//caso não haja nenhuma palavra chave, ou ID para o post em questão
+	if((($setting_word)and($setting_id))==''){
+		
+		//executar script que coleta as top keywords
+		$xml_parserkey = xml_parser_create();
+		xml_set_element_handler($xml_parserkey, "startElementkey", "endElementkey");
+		xml_set_character_data_handler($xml_parserkey, "characterDatakey");
+
+		$baseURL2 = "http://www.".$urlml."/jm/ml.web.pulse.PulsePageController?gzip=y&as_XML";
+
+	//Selecionar Fopen ou Curl
+	
+	if(function_exists(curl_init)){
+	
+		$curl = curl_init();
+		$timeout = 0;
+	
+		curl_setopt ($curl, CURLOPT_URL, $baseURL2);
+		curl_setopt ($curl, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt ($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
+	
+		$data = curl_exec($curl);
+		xml_parse($xml_parserkey, $data) or trigger_error("Erro ao executar o parser");
+	
+	
+		curl_close($curl);
+	
+	}else{
+		
+		$fp = fopen($baseURL2,"r") or trigger_error("Erro ao executar o parser"); 
+
+		while($data = fread($fp, 4096)) { 
+  			# begin parse 
+  			xml_parse($xml_parserkey, $data, feof($fp)) 
+  			or die(sprintf("XML error: %s at line %d", 
+  			xml_error_string(xml_get_error_code($xml_parserkey)), 
+  			xml_get_current_line_number($xml_parserkey))); 
+  			# end parse 
+		}
+	
+	fclose($fp); 	
+	
+	}
+		xml_parser_free($xml_parserkey);
+	}
+
+}
+
+// Function:Deleta os custom fields
+add_action('delete_post', 'mlv_delete_cfields');
+function mlv_delete_cfields($post_ID) {
+	global $wpdb;
+	delete_post_meta($post_ID, 'mlv_word');
+	delete_post_meta($post_ID, 'mlv_id');
+	delete_post_meta($post_ID, 'mlv_minpr');	
 }
 
 //Carrega o CSS no Header
+add_action('wp_head', 'mlv_loadcss');
 function mlv_loadcss() {
          global $mlv_options;
-         echo '<style type="text/css" media="screen">'.$mlv_options['mlv_css'].'</style>';
+		 echo '<link rel="stylesheet" href="'.get_bloginfo('url').'/wp-content/plugins/mlv_contextual/mlv_stylesheet.css" type="text/css" media="screen" />'."\n";
 }
 
-//Adiciona a vitrine após os textos
-function auto_vc($text){
-global $vitrine_ml, $mlv_options;
-if((is_single())and($mlv_options["mlv_autoshowlocal"]!='none')){
-vitrine_contextual();
-  //Acima ou abaixo do post?
-  if($mlv_options["mlv_autoshowlocal"]=='over'){
-   $text=$vitrine_ml.$text;
-   }elseif($mlv_options["mlv_autoshowlocal"]=='under'){
-   $text.=$vitrine_ml;
-   }
+//BEGIN LOOP
+//include_once ('functions_loop.php');
+
+//Funções para gerar o loop coletor de palavras chave
+
+	$count_keywords='1';
+	$topkw_key='';
+	$count='0';
+
+function startElementkey($parserkey, $name, $attrs) {
+	global $tag2, $attrbs, $keyword2;
+	$tag2 = $name;
 }
-return $text;
+	
+function endElementkey($parserkey, $name) {
+	global $keyword2, $tag2, $count_keywords, $topkw_key;
+	if(($name=='KEYWORD')and($count_keywords<='5')){
+		$topkw_key='_mlv_topkw'.$count_keywords;
+		if(!update_post_meta('1', $topkw_key, $keyword2)){
+		add_post_meta('1', $topkw_key, $keyword2, true);
+		}
+		$keyword2='';
+		$count_keywords++;
+		$topkw_key='';
+	}
 }
 
-//Função para chamar manualmente
-function mlv_contextual(){
-global $vitrine_ml, $mlv_options, $s;
-if(((is_single())and($mlv_options["mlv_autoshowlocal"]=='none'))||(!empty($s))){
-vitrine_contextual();
-print $vitrine_ml."\n";
-}
+function characterDatakey($parserkey, $data) {
+	global $keyword2, $tag2;
+	if ($tag2=="KEYWORD") {
+	  $keyword2 .= $data;
+	  $keyword2=trim($keyword2);
+	  }
 }
 
-// Adiciona a opção no menu Options
-function mlv_add_options_page() {
-		add_options_page('MLV Contextual Options', 'MLV Contextual', 8, basename(__FILE__), 'mlv_manage_options');
-}
+//Funções para gerar o loop coletor de ofertas
 
 function startElement($parser, $name, $attrs) { 
 global $insideitem, $tag, $encontrados, $vitrine_ml, $mlv_options;
@@ -178,7 +301,7 @@ $vitrine_ml.= $mlv_options["mlv_anuncio_alternativo"];
 
 
 function endElement($parser, $name) { 
-global $insideitem, $tag, $title, $link, $price, $image, $currency, $encontrados, $actual, $count, $vitrine_ml, $mlv_options,$palabras, $cat; 
+global $insideitem, $tag, $title, $link, $price, $image, $currency, $encontrados, $actual, $count, $vitrine_ml, $mlv_options,$palabras, $cat, $mpago, $pais, $urlml, $urlmlista, $lang; 
 
 if ($name == 'ITEM') { 
 $actual++;
@@ -191,24 +314,31 @@ $image = htmlentities($image, ENT_QUOTES);
     $title = htmlentities($title, ENT_QUOTES);
   }
 
-if(($count=='1')and($encontrados>'0')){$vitrine_ml.= "<table id=\"tabela_ml\" cellpadding=\"0\" cellspacing=\"0\"></tr>";}
+if(($count=='1')and($encontrados>'0')){$vitrine_ml.= "<table id=\"tabela_ml\" cellpadding=\"0\" cellspacing=\"0\"><tr><th class=\"mlv_vititle\" colspan=\"".$mlv_options["mlv_cant"]."\">".$mlv_options['mlv_vititle']."</th></tr>";}
 
      $vitrine_ml.= "<td class=\"celula_ml\">";
-	 if($image != '') {$vitrine_ml.="<a href=\"http://pmstrk.mercadolivre.com.br/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&go=http://lista.mercadolivre.com.br/";
+	 if($image != '') {$vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;go=http://".$urlmlista."/";
 	 if(!empty($palabras)){$vitrine_ml.="$palabras";}
 	 if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
 	 if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
-	 $vitrine_ml.="_DisplayType_G\" title=\"Clique para ver e/ou comprar $title\" onClick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$image\" alt=\"$title\"></a>";
+	 $vitrine_ml.="_DisplayType_G\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$image\" alt=\"$title\" /></a>";
 	}else{
-     $vitrine_ml.="<a href=\"http://pmstrk.mercadolivre.com.br/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&go=http://lista.mercadolivre.com.br/";
+     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;go=http://".$urlmlista."/";
 	 if(!empty($palabras)){$vitrine_ml.="$palabras";}
 	 if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
 	 if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
-	 $vitrine_ml.="_DisplayType_G\" title=\"Clique para ver e/ou comprar $title\" onClick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=MLB&f=artsinfoto.gif&v=I\"></a>";
+	 $vitrine_ml.="_DisplayType_G\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=".$pais."&f=artsinfoto.gif&v=I\" /></a>";
 	}
-     $vitrine_ml.="<div class=\"title_ml\">$title<br/><a href=\"$link\" title=\"Mais informa&ccedil;&otilde;es de $title\" onClick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
-	 if($mlv_options['mlv_preco']=='y'){
-	 $vitrine_ml.="<div class=\"preco_ml\">$currency $price<br/></div>";
+     $vitrine_ml.="<div class=\"title_ml\">$title<br/><a href=\"$link\" title=\"".$lang['mais-info']." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
+	 
+	 $vitrine_ml.="<div class=\"preco_ml\">$currency $price<br /></div>";
+	 
+	 
+	 if($mpago=='Y') {
+	 	$price_jur=str_replace(",","",$price);
+	 	$price_jur=($price_jur*1.35)/18;
+	 	$price_jur=number_format($price_jur, 2, ".", "");
+	 	$vitrine_ml.="<div class=\"mpago_ml\">".$lang['ate-18']." $price_jur<br /></div>";
 	 }
 	
 	$vitrine_ml.= "</td>";
@@ -225,12 +355,13 @@ $price = '';
 $image = ''; 
 $currency = ''; 
 $insideitem = false;
+$mpago='';
 }
 }
 
 
 function characterData($parser, $data) { 
-global $insideitem, $tag, $title, $link, $price, $image, $currency, $mlv_options; 
+global $insideitem, $tag, $title, $link, $price, $image, $currency, $mlv_options, $mpago; 
 if ($insideitem) { 
   switch ($tag) { 
   case "TITLE": 
@@ -253,13 +384,72 @@ if ($insideitem) {
   case "CURRENCY": 
   $currency .= $data; 
   $currency = trim($currency); 
-  break; 
+  break;
+  case "MPAGO":
+  $mpago .= $data; 
+  $mpago = trim($mpago);
+  break;
   } 
 } 
 }
 
+// END LOOP
+
+//Adiciona a vitrine após os textos
+function auto_vc($text){
+global $vitrine_ml, $mlv_options, $pais, $lang, $mlv_post_time, $mlv_time;
+
+if((is_single())and($mlv_options["mlv_autoshowlocal"]!='none')){
+	$mlv_post_time = get_the_time('U');
+	$mlv_time = trim($mlv_options['mlv_time']);
+	if($mlv_time=='0') {
+		vitrine_contextual();
+		//Acima ou abaixo do post?
+		if($mlv_options["mlv_autoshowlocal"]=='over'){
+		$text=$vitrine_ml.$text;
+		}elseif($mlv_options["mlv_autoshowlocal"]=='under'){
+		$text.=$vitrine_ml;
+		}
+	} elseif ($mlv_post_time<=time()-($mlv_time*24*60*60)){
+		vitrine_contextual();
+		//Acima ou abaixo do post?
+		if($mlv_options["mlv_autoshowlocal"]=='over'){
+		$text=$vitrine_ml.$text;
+		}elseif($mlv_options["mlv_autoshowlocal"]=='under'){
+		$text.=$vitrine_ml;
+		}
+	}
+}
+return $text;
+}
+
+//Função para chamar manualmente
+function mlv_contextual(){
+global $vitrine_ml, $mlv_options, $s, $pais, $lang, $mlv_post_time, $mlv_time;
+
+	if((is_single())and($mlv_options["mlv_autoshowlocal"]=='none')){
+		$mlv_post_time = get_the_time('U');
+		$mlv_time = $mlv_options['mlv_time'];
+		if($mlv_time=='0') {
+		vitrine_contextual();
+		print $vitrine_ml."\n";
+		} elseif ($mlv_post_time<=time()-($mlv_time*24*60*60)){
+		vitrine_contextual();
+		print $vitrine_ml."\n";
+		}
+	}elseif(!empty($s)){
+		vitrine_contextual();
+		print $vitrine_ml."\n";
+	}
+}
+
+// Adiciona a opção no menu Options
+function mlv_add_options_page() {
+		add_options_page('MLV Contextual Options', 'MLV Contextual', 8, basename(__FILE__), 'mlv_manage_options');
+}
+
 function vitrine_contextual(){
-global $insideitem, $item, $tag, $s, $post, $cat, $palabras, $minpr, $count, $vitrine_ml, $mlv_options, $fil1_array, $fil1_rand, $ord_array, $ord_rand;
+global $insideitem, $item, $tag, $s, $post, $cat, $palabras, $minpr, $count, $vitrine_ml, $mlv_options, $fil1_array, $fil1_rand, $ord_array, $ord_rand, $mpago, $pais, $urlml, $urlmlista, $lang;
 
 
 #Enable GZip compression? 
@@ -279,9 +469,25 @@ $executar_ml='';
 	if(empty($s)){
 	$minpr=urlencode(get_post_meta($post->ID, 'mlv_minpr', true));
 	$cat=urlencode(get_post_meta($post->ID, 'mlv_id', true));
-	$palabras.=trim(get_post_meta($post->ID, 'mlv_word', true));
-	$palabras=str_replace(array('Á','À','Â','Ã','Ä','É','È','Ê','Ë','Í','Ì','Ï','Ó','Ò','Õ','Ô','Ú','Ù','Û','Ü','Ç'), array('a','a','a','a','a','e','e','e','e','i','i','i','o','o','o','o','u','u','u','u','c'), $palabras);
-	$palabras=str_replace(array('á','à','â','ã','ä','é','è','ê','ë','í','ì','ï','ó','ò','õ','ô','ú','ù','û','ü','ç'), array('a','a','a','a','a','e','e','e','e','i','i','i','o','o','o','o','u','u','u','u','c'), $palabras);
+
+# COMECO - edicao para suporte do palavras de e moneticao - COMECO
+	# inclusao by bernabauer.com
+	
+	if($mlv_options['mlv_ctxwords'] == 'mlvc') {
+		$palabras.=trim(get_post_meta($post->ID, 'mlv_word', true));
+	 } else {
+		$palabras.=trim(get_post_meta($post->ID, 'mlv_word', true));
+		$current_plugins = get_option('active_plugins'); 
+		if (!in_array('palavras-de-monetizacao/palavrasmonetizacao.php', $current_plugins)) { 
+			$palabras.=trim(get_post_meta($post->ID, 'mlv_word', true));
+		} else {
+$array_pm = pm_get_words();
+$palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
+		}
+	}
+# FIM - edicao para suporte do palavras de e moneticao - FIM
+
+	$palabras= trat($palabras);
 	$palabras=urlencode($palabras);
 	if((empty($palabras))and(empty($cat))){
 		$executar_ml=false;
@@ -289,17 +495,15 @@ $executar_ml='';
 		$executar_ml=true;
 		}
 	}elseif(!empty($s)){
-		  $palabras.=trim($s);
-		  $palabras=str_replace(array('Á','À','Â','Ã','Ä','É','È','Ê','Ë','Í','Ì','Ï','Ó','Ò','Õ','Ô','Ú','Ù','Û','Ü','Ç'), array('a','a','a','a','a','e','e','e','e','i','i','i','o','o','o','o','u','u','u','u','c'), $palabras);
-		  $palabras=str_replace(array('á','à','â','ã','ä','é','è','ê','ë','í','ì','ï','ó','ò','õ','ô','ú','ù','û','ü','ç'), array('a','a','a','a','a','e','e','e','e','i','i','i','o','o','o','o','u','u','u','u','c'), $palabras);
-		  $palabras=urlencode($palabras);
+		  $palabras = trat($palabras);
+		  $palabras = urlencode($palabras);
 		  $executar_ml=true;
 	}else{
 		  $executar_ml=false;
 	}
 
 if($executar_ml){
-$baseURL = 'http://www.mercadolivre.com.br/jm/searchXml?as_search_both=N&gzip='.$gzip;
+$baseURL = "http://www.".$urlml."/jm/searchXml?as_search_both=N&gzip=".$gzip;
 if (!empty($cat)){ $baseURL .= '&as_categ_id='.$cat;}
 if (!empty($palabras)){ $baseURL .= '&as_word='.$palabras;}
 if (!empty($mlv_options["mlv_cant"])){ $baseURL .= '&as_qshow='.$mlv_options["mlv_cant"];}
@@ -325,7 +529,7 @@ if (!empty($minpr)){ $baseURL .= '&as_price_min='.$minpr;}
 	
 	//Selecionar Fopen ou Curl
 	
-	if($mlv_options['mlv_function']=='c'){
+	if(function_exists(curl_init)){
 	
 		$curl = curl_init();
 		$timeout = 0;
@@ -340,7 +544,7 @@ if (!empty($minpr)){ $baseURL .= '&as_price_min='.$minpr;}
 	
 		curl_close($curl);
 	
-	}elseif($mlv_options['mlv_function']=='f'){
+	}else{
 		
 		$fp = fopen($baseURL,"r") or trigger_error("Erro ao executar o parser"); 
 
@@ -360,33 +564,92 @@ if (!empty($minpr)){ $baseURL .= '&as_price_min='.$minpr;}
 xml_parser_free($xml_parser);
 
 if($count>'0'){
-	$vitrine_ml.="</tr><th colspan=\"".$mlv_options["mlv_cant"]."\" style=\"font-size:9px; font-weight:normal; text-align:right;\">Vitrine <a href=\"http://tecnoblog.net/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">TecnoBlog</a>&nbsp;&nbsp;</a></th>";
+	$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_options["mlv_cant"]."\">Vitrine <a href=\"http://tecnoblog.net/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">Tecnoblog</a>&nbsp;&nbsp;</th></tr>";
 	$vitrine_ml.= "</table>";}
 
-}else{
-
-	$vitrine_ml.= $mlv_options["mlv_anuncio_alternativo"];
-
 }
+
+if((!empty($mlv_options["mlv_anuncio_alternativo"]))and($count=='0')){
+	
+	//Anúncio alternativo
+	$vitrine_ml.= $mlv_options["mlv_anuncio_alternativo"];
+	
+}elseif($count=='0'){ // Pau aqui. às vezes não adiciona as mais vendidas, e mesmo assim printa essa parte.
+	
+	//Exibir vitrine com mais vendidos
+	$topkw_num.=rand(1,5);
+	$topkw_random.= '_mlv_topkw'.trim($topkw_num);
+	$palabras= get_post_meta('1', $topkw_random, true);
+	$minpr='50';
+	
+	$baseURL = "http://www.".$urlml."/jm/searchXml?as_search_both=N&as_filtro_id=MPAGO&as_filtro_id=NUEVO&as_order_id=HIT_PAGE&gzip=".$gzip."&as_word=".$palabras;
+	$baseURL .= '&as_price_min='.$minpr;
+	if (!empty($mlv_options["mlv_cant"])){ $baseURL .= '&as_qshow='.$mlv_options["mlv_cant"];}
+
+		$xml_parser = xml_parser_create('ISO-8859-1'); 
+	xml_set_element_handler($xml_parser, "startElement", "endElement"); 
+	xml_set_character_data_handler($xml_parser, "characterData"); 
+	
+	//Selecionar Fopen ou Curl
+	
+	if(function_exists(curl_init)){
+	
+		$curl = curl_init();
+		$timeout = 0;
+	
+		curl_setopt ($curl, CURLOPT_URL, $baseURL);
+		curl_setopt ($curl, CURLOPT_RETURNTRANSFER, 1);
+		curl_setopt ($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
+	
+		$data = curl_exec($curl);
+		xml_parse($xml_parser, $data) or trigger_error("Erro ao executar o parser");
+	
+	
+		curl_close($curl);
+	
+	}else{
+		
+		$fp = fopen($baseURL,"r") or trigger_error("Erro ao executar o parser"); 
+
+		while($data = fread($fp, 4096)) { 
+  			# begin parse 
+  			xml_parse($xml_parser, $data, feof($fp)) 
+  			or die(sprintf("XML error: %s at line %d", 
+  			xml_error_string(xml_get_error_code($xml_parser)), 
+  			xml_get_current_line_number($xml_parser))); 
+  			# end parse 
+		}
+	
+	fclose($fp); 	
+	
+	}
+	
+xml_parser_free($xml_parser);
+
+$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_options["mlv_cant"]."\">Vitrine <a href=\"http://tecnoblog.net/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">TecnoBlog</a>&nbsp;&nbsp;</th></tr>";
+	$vitrine_ml.= "</table>";
+
+	}
 }
 
 // Tela do Painel
 function mlv_manage_options() {
-  global $mlv_options;
+  global $mlv_options, $lang;
   if (isset($_POST['mlv_atualizar'])) {
+ 	$mlv_options["mlv_pais"] = $_POST["mlv_pais"];
+	$mlv_options["mlv_ctxwords"] = $_POST["mlv_ctxwords"];
 	$mlv_options["mlv_autoshowlocal"] = $_POST["mlv_autoshowlocal"];
+	$mlv_options["mlv_time"] = $_POST["mlv_time"];	
 	$mlv_options["mlv_afidml"] = $_POST["mlv_afidml"];
+	$mlv_options["mlv_vititle"] = $_POST["mlv_vititle"];
 	$mlv_options["mlv_cant"] = $_POST["mlv_cant"];
 	$mlv_options["mlv_ancho"] = $_POST["mlv_ancho"];
 	$mlv_options["mlv_ord"] = $_POST["mlv_ord"];
 	$mlv_options["mlv_fil1"] = $_POST["mlv_fil1"];
 	$mlv_options["mlv_fil2"] = $_POST["mlv_fil2"];
-	$mlv_options["mlv_preco"] = $_POST["mlv_preco"];
-	$mlv_options["mlv_css"] = $_POST["mlv_css"];
 	$mlv_options["mlv_anuncio_alternativo"] = stripslashes($_POST["mlv_anuncio_alternativo"]);
 	$mlv_options["mlv_encode"] = $_POST["mlv_encode"];
-	$mlv_options['mlv_function'] = $_POST["mlv_function"];
-    update_option('mlv_options', $mlv_options);
+	update_option('mlv_options', $mlv_options);
     ?>
     <div class="updated">
       <p>
@@ -404,24 +667,99 @@ function mlv_manage_options() {
   //-->
   </style>
   <div class="wrap">
-    <h2>ML Vitrine Contextual</h2>
+    <h2>MLV Contextual</h2>
       <form method="post">
-        <fieldset class="options">
-		  <label for="mlv_autoshowlocal">Exibir a vitrine automaticamente:</label>
-		  <select name="mlv_autoshowlocal" id="mlv_autoshowlocal">
-		    <option <?php if($mlv_options['mlv_autoshowlocal'] == 'over') { echo 'selected'; } ?> value="over">Acima do post</option>
-        	<option <?php if($mlv_options['mlv_autoshowlocal'] == 'under') { echo 'selected'; } ?> value="under">Abaixo do post</option>
-        	<option <?php if($mlv_options['mlv_autoshowlocal'] == 'none') { echo 'selected'; } ?> value="none">Vou inserir manualmente</option>
+	  
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top">País:</th>
+		<td>
+		  <select name="mlv_pais" id="mlv_pais">
+		    <option <?php if($mlv_options['mlv_pais'] == 'mla') { echo 'selected'; } ?> value="mla">Argentina</option>
+        	<option <?php if($mlv_options['mlv_pais'] == 'mlb') { echo 'selected'; } ?> value="mlb">Brasil</option>
+        	<option <?php if($mlv_options['mlv_pais'] == 'mlc') { echo 'selected'; } ?> value="mlc">Chile</option>
+		    <option <?php if($mlv_options['mlv_pais'] == 'mlo') { echo 'selected'; } ?> value="mlo">Colômbia</option>
+        	<option <?php if($mlv_options['mlv_pais'] == 'mlm') { echo 'selected'; } ?> value="mlm">México</option>
+        	<option <?php if($mlv_options['mlv_pais'] == 'mlv') { echo 'selected'; } ?> value="mlv">Venezuela</option>
 		  </select>
-		  <br/>
-		  <br/>
-		  <label for="mlv_afidml">ID de Afiliado Mercado Livre:</label>
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['origem-cont']; ?>:</th>
+		<td>
+		  <select name="mlv_ctxwords" id="mlv_ctxwords">
+		    <option <?php if($mlv_options['mlv_ctxwords'] == 'mlvc') { echo 'selected'; } ?> value="mlvc">MLV Contextual</option>
+        	<option <?php if($mlv_options['mlv_ctxwords'] == 'pm') { echo 'selected'; } ?> value="pm"><?php echo $lang['pals-monet']; ?></option>
+		  </select> <br /> 
+			<?php 
+				$current_plugins = get_option('active_plugins'); 
+				if (!in_array('palavras-de-monetizacao/palavrasmonetizacao.php', $current_plugins)) { 
+			
+			echo $lang['necess-plugin'];
+		
+		} else { 
+
+			echo $lang['apto-pmon'];
+		
+		} ?>
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['id-af-ml']; ?>:</th>
+		<td>
           <input name="mlv_afidml" type="text" id="mlv_afidml" value="<?=$mlv_options['mlv_afidml'];?>" size="25" maxlength="25" />
-          <br />
-		  <br/>
-		  <label for="mlv_cant">Quantidade de ofertas a exibir:</label>
+		</td>
+	 </tr>
+	</table>
+	
+	    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['exibir-auto']; ?>:</th>
+		<td>
+		  <select name="mlv_autoshowlocal" id="mlv_autoshowlocal">
+		    <option <?php if($mlv_options['mlv_autoshowlocal'] == 'over') { echo 'selected'; } ?> value="over"><?php echo $lang['acima-post']; ?></option>
+        	<option <?php if($mlv_options['mlv_autoshowlocal'] == 'under') { echo 'selected'; } ?> value="under"><?php echo $lang['abaixo-post']; ?></option>
+        	<option <?php if($mlv_options['mlv_autoshowlocal'] == 'none') { echo 'selected'; } ?> value="none"><?php echo $lang['vou-manual']; ?></option>
+		  </select>
+		</td>
+	 </tr>
+	</table>
+	
+	    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['dias']; ?>:</th>
+		<td>
+		  <select name="mlv_time" id="mlv_time">
+		    <option <?php if($mlv_options['mlv_time'] == '0') { echo 'selected'; } ?> value="0"><?php echo $lang['0']; ?></option>
+        	<option <?php if($mlv_options['mlv_time'] == '7') { echo 'selected'; } ?> value="7"><?php echo $lang['7']; ?></option>
+        	<option <?php if($mlv_options['mlv_time'] == '15') { echo 'selected'; } ?> value="15"><?php echo $lang['15']; ?></option>
+			<option <?php if($mlv_options['mlv_time'] == '30') { echo 'selected'; } ?> value="30"><?php echo $lang['30']; ?></option>
+		  </select>
+		</td>
+	 </tr>
+	</table>
+	
+	<table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['title-vitr']; ?>:</th>
+		<td>
+          <input name="mlv_vititle" type="text" id="mlv_vititle" value="<?=$mlv_options['mlv_vititle'];?>" size="40" maxlength="40" />
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['quant-ofertas']; ?>:</th>
+		<td>
 		  <select name="mlv_cant" id="mlv_cant">
-		    <option <?php if($mlv_options['mlv_cant'] == '0') { echo 'selected'; } ?> value="0">Selecione</option>
+		    <option <?php if($mlv_options['mlv_cant'] == '0') { echo 'selected'; } ?> value="0"><?php echo $lang['selecione']; ?></option>
         	<option <?php if($mlv_options['mlv_cant'] == '1') { echo 'selected'; } ?> value="1">1</option>
 			<option <?php if($mlv_options['mlv_cant'] == '2') { echo 'selected'; } ?> value="2">2</option>
 			<option <?php if($mlv_options['mlv_cant'] == '3') { echo 'selected'; } ?> value="3">3</option>
@@ -433,11 +771,22 @@ function mlv_manage_options() {
 			<option <?php if($mlv_options['mlv_cant'] == '9') { echo 'selected'; } ?> value="9">9</option>
 			<option <?php if($mlv_options['mlv_cant'] == '10') { echo 'selected'; } ?> value="10">10</option>
 		  </select>
-		  <br/>
-		  <br/>
-		  <label for="mlv_ancho">Quantidade de ofertas por linha:</label>
+
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['quant-ofertas-linha']; ?>:</th>
+		<td>
 		  <select name="mlv_ancho" id="mlv_ancho">
-		    <option <?php if($mlv_options['mlv_ancho'] == '0') { echo 'selected'; } ?> value="0">Selecione</option>
+		    <option <?php if($mlv_options['mlv_ancho'] == '0') { echo 'selected'; } ?> value="0"><?php echo $lang['selecione']; ?></option>
         	<option <?php if($mlv_options['mlv_ancho'] == '1') { echo 'selected'; } ?> value="1">1</option>
 			<option <?php if($mlv_options['mlv_ancho'] == '2') { echo 'selected'; } ?> value="2">2</option>
 			<option <?php if($mlv_options['mlv_ancho'] == '3') { echo 'selected'; } ?> value="3">3</option>
@@ -449,86 +798,96 @@ function mlv_manage_options() {
 			<option <?php if($mlv_options['mlv_ancho'] == '9') { echo 'selected'; } ?> value="9">9</option>
 			<option <?php if($mlv_options['mlv_ancho'] == '10') { echo 'selected'; } ?> value="10">10</option>
 		  </select>
-		  <br/>
-		  <br/>
-		  <label for="mlv_ord">Ordenar as ofertas por:</label>
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['ord-por']; ?>:</th>
+		<td>
 		  <select name="mlv_ord" id="mlv_ord">
-		    <option <?php if($mlv_options['mlv_ord'] == '') { echo 'selected'; } ?> value="">Selecione</option>
-        	<option <?php if($mlv_options['mlv_ord'] == 'AUCTION_STOP') { echo 'selected'; } ?> value="AUCTION_STOP">Tempo restante</option>
-			<option <?php if($mlv_options['mlv_ord'] == 'ITEM_TITLE') { echo 'selected'; } ?> value="ITEM_TITLE">Alfabeticamente</option>
+		    <option <?php if($mlv_options['mlv_ord'] == '') { echo 'selected'; } ?> value=""><?php echo $lang['selecione']; ?></option>
+        	<option <?php if($mlv_options['mlv_ord'] == 'AUCTION_STOP') { echo 'selected'; } ?> value="AUCTION_STOP"><?php echo $lang['temp-rest']; ?></option>
+			<option <?php if($mlv_options['mlv_ord'] == 'ITEM_TITLE') { echo 'selected'; } ?> value="ITEM_TITLE"><?php echo $lang['alfab']; ?></option>
 			<option <?php if($mlv_options['mlv_ord'] == 'HIT_PAGE') { echo 'selected'; } ?> value="HIT_PAGE">Visitas</option>
 			<option <?php if($mlv_options['mlv_ord'] == 'MENOS_OFERTADOS') { echo 'selected'; } ?> value="MENOS_OFERTADOS">Menos vendidos</option>
-			<option <?php if($mlv_options['mlv_ord'] == 'MAS_OFERTADOS') { echo 'selected'; } ?> value="MAS_OFERTADOS">Mais vendidos</option>
-			<option <?php if($mlv_options['mlv_ord'] == 'BARATOS') { echo 'selected'; } ?> value="BARATOS">Mais baratos</option>
-			<option <?php if($mlv_options['mlv_ord'] == 'CAROS') { echo 'selected'; } ?> value="CAROS">Mais caros</option>
-			<option <?php if($mlv_options['mlv_ord'] == 'R') { echo 'selected'; } ?> value="R">Rand&ocirc;mico</option>
+			<option <?php if($mlv_options['mlv_ord'] == 'MAS_OFERTADOS') { echo 'selected'; } ?> value="MAS_OFERTADOS"><?php echo $lang['mais-ven']; ?></option>
+			<option <?php if($mlv_options['mlv_ord'] == 'BARATOS') { echo 'selected'; } ?> value="BARATOS"><?php echo $lang['mais-bar']; ?></option>
+			<option <?php if($mlv_options['mlv_ord'] == 'CAROS') { echo 'selected'; } ?> value="CAROS"><?php echo $lang['mais-car']; ?></option>
+			<option <?php if($mlv_options['mlv_ord'] == 'R') { echo 'selected'; } ?> value="R"><?php echo $lang['rand']; ?></option>
 		  </select>
-		  <br/>
-		  <br/>
-		  <label for="mlv_fil1">Filtro 1 - exibir somente ofertas que sejam:</label>
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['filtro-1']; ?>:</th>
+		<td>
 		  <select name="mlv_fil1" id="mlv_fil1">
-		    <option <?php if($mlv_options['mlv_fil1'] == '') { echo 'selected'; } ?> value="">Nenhum</option>
-        	<option <?php if($mlv_options['mlv_fil1'] == '24_HS') { echo 'selected'; } ?> value="24_HS">Finalizam em 24h</option>
-			<option <?php if($mlv_options['mlv_fil1'] == 'PRECIO_FIJO') { echo 'selected'; } ?> value="PRECIO_FIJO">Pre&ccedil;o fixo</option>
-			<option <?php if($mlv_options['mlv_fil1'] == 'SOLO_SUBASTAS') { echo 'selected'; } ?> value="SOLO_SUBASTAS">Leil&atilde;o</option>
-			<option <?php if($mlv_options['mlv_fil1'] == 'UN_PESO') { echo 'selected'; } ?> value="UN_PESO">Come&ccedil;am em R$1</option>
-			<option <?php if($mlv_options['mlv_fil1'] == 'RECIEN_EMPIEZAN') { echo 'selected'; } ?> value="RECIEN_EMPIEZAN">Come&ccedil;am hoje</option>
+		    <option <?php if($mlv_options['mlv_fil1'] == '') { echo 'selected'; } ?> value=""><?php echo $lang['nenhum']; ?></option>
+        	<option <?php if($mlv_options['mlv_fil1'] == '24_HS') { echo 'selected'; } ?> value="24_HS"><?php echo $lang['fin-24h']; ?></option>
+			<option <?php if($mlv_options['mlv_fil1'] == 'PRECIO_FIJO') { echo 'selected'; } ?> value="PRECIO_FIJO"><?php echo $lang['preco-fix']; ?></option>
+			<option <?php if($mlv_options['mlv_fil1'] == 'SOLO_SUBASTAS') { echo 'selected'; } ?> value="SOLO_SUBASTAS"><?php echo $lang['leilao']; ?></option>
+			<option <?php if($mlv_options['mlv_fil1'] == 'UN_PESO') { echo 'selected'; } ?> value="UN_PESO"><? echo $lang['comec-1']; ?></option>
+			<option <?php if($mlv_options['mlv_fil1'] == 'RECIEN_EMPIEZAN') { echo 'selected'; } ?> value="RECIEN_EMPIEZAN"><?php echo $lang['comec-hoje']; ?></option>
 			<option <?php if($mlv_options['mlv_fil1'] == 'CERTIFIED') { echo 'selected'; } ?> value="CERTIFIED">MercadoL&iacute;deres</option>
-			<option <?php if($mlv_options['mlv_fil1'] == 'NUEVO') { echo 'selected'; } ?> value="NUEVO">Produtos Novos</option>
-			<option <?php if($mlv_options['mlv_fil1'] == 'USADO') { echo 'selected'; } ?> value="USADO">Produtos Usados</option>
-			<option <?php if($mlv_options['mlv_fil1'] == 'MPAGO') { echo 'selected'; } ?> value="MPAGO">Aceita Mercado Pago</option>	
-			<option <?php if($mlv_options['mlv_fil1'] == 'R') { echo 'selected'; } ?> value="R">Rand&ocirc;mico</option>	
+			<option <?php if($mlv_options['mlv_fil1'] == 'NUEVO') { echo 'selected'; } ?> value="NUEVO"><?php echo $lang['prods-novs']; ?></option>
+			<option <?php if($mlv_options['mlv_fil1'] == 'USADO') { echo 'selected'; } ?> value="USADO"><?php echo $lang['prods-usads']; ?></option>
+			<option <?php if($mlv_options['mlv_fil1'] == 'MPAGO') { echo 'selected'; } ?> value="MPAGO"><?php echo $lang['aceitam-mp']; ?></option>	
+			<option <?php if($mlv_options['mlv_fil1'] == 'R') { echo 'selected'; } ?> value="R"><?php echo $lang['rand']; ?></option>	
 		  </select>
-		  <br/>
-		  <br/>
-		  <label for="mlv_fil2">Filtro 2 - exibir somente ofertas que sejam:</label>
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['filtro-2']; ?>:</th>
+		<td>
 		  <select name="mlv_fil2" id="mlv_fil2">
-		    <option <?php if($mlv_options['mlv_fil2'] == '') { echo 'selected'; } ?> value="">Nenhum</option>
-        	<option <?php if($mlv_options['mlv_fil2'] == '24_HS') { echo 'selected'; } ?> value="24_HS">Finalizam em 24h</option>
-			<option <?php if($mlv_options['mlv_fil2'] == 'PRECIO_FIJO') { echo 'selected'; } ?> value="PRECIO_FIJO">Pre&ccedil;o fixo</option>
-			<option <?php if($mlv_options['mlv_fil2'] == 'SOLO_SUBASTAS') { echo 'selected'; } ?> value="SOLO_SUBASTAS">Leil&atilde;o</option>
-			<option <?php if($mlv_options['mlv_fil2'] == 'UN_PESO') { echo 'selected'; } ?> value="UN_PESO">Come&ccedil;am em R$1</option>
-			<option <?php if($mlv_options['mlv_fil2'] == 'RECIEN_EMPIEZAN') { echo 'selected'; } ?> value="RECIEN_EMPIEZAN">Come&ccedil;am hoje</option>
+		    <option <?php if($mlv_options['mlv_fil2'] == '') { echo 'selected'; } ?> value=""><?php echo $lang['nenhum']; ?></option>
+        	<option <?php if($mlv_options['mlv_fil2'] == '24_HS') { echo 'selected'; } ?> value="24_HS"><?php echo $lang['fin-24h']; ?></option>
+			<option <?php if($mlv_options['mlv_fil2'] == 'PRECIO_FIJO') { echo 'selected'; } ?> value="PRECIO_FIJO"><?php echo $lang['preco-fix']; ?></option>
+			<option <?php if($mlv_options['mlv_fil2'] == 'SOLO_SUBASTAS') { echo 'selected'; } ?> value="SOLO_SUBASTAS"><?php echo $lang['leilao']; ?></option>
+			<option <?php if($mlv_options['mlv_fil2'] == 'UN_PESO') { echo 'selected'; } ?> value="UN_PESO"><? echo $lang['comec-1']; ?></option>
+			<option <?php if($mlv_options['mlv_fil2'] == 'RECIEN_EMPIEZAN') { echo 'selected'; } ?> value="RECIEN_EMPIEZAN"><?php echo $lang['comec-hoje']; ?></option>
 			<option <?php if($mlv_options['mlv_fil2'] == 'CERTIFIED') { echo 'selected'; } ?> value="CERTIFIED">MercadoL&iacute;deres</option>
-			<option <?php if($mlv_options['mlv_fil2'] == 'NUEVO') { echo 'selected'; } ?> value="NUEVO">Produtos Novos</option>
-			<option <?php if($mlv_options['mlv_fil2'] == 'USADO') { echo 'selected'; } ?> value="USADO">Produtos Usados</option>
-			<option <?php if($mlv_options['mlv_fil2'] == 'MPAGO') { echo 'selected'; } ?> value="MPAGO">Aceita Mercado Pago</option>	
+			<option <?php if($mlv_options['mlv_fil2'] == 'NUEVO') { echo 'selected'; } ?> value="NUEVO"><?php echo $lang['prods-novs']; ?></option>
+			<option <?php if($mlv_options['mlv_fil2'] == 'USADO') { echo 'selected'; } ?> value="USADO"><?php echo $lang['prods-usads']; ?></option>
+			<option <?php if($mlv_options['mlv_fil2'] == 'MPAGO') { echo 'selected'; } ?> value="MPAGO"><?php echo $lang['aceitam-mp']; ?></option>	
 		  </select>
-		  <br/>
-		  <br/>
-		  <label for="mlv_preco">Exibir o pre&ccedil;o das ofertas?</label>
-		  <select name="mlv_preco" id="mlv_preco">
-		    <option <?php if($mlv_options['mlv_preco'] == 'y') { echo 'selected'; } ?> value="y">Sim</option>
-        	<option <?php if($mlv_options['mlv_preco'] == 'n') { echo 'selected'; } ?> value="n">N&atilde;o</option>
-		  </select>
-		  <br/>
-		  <br/>
-		  <label for="mlv_css">C&oacute;digo CSS. Aqui você pode alterar o visual dos an&uacute;ncios:</label>
-          <textarea name="mlv_css" id="mlv_css" cols="70" rows="30" ><?=stripslashes($mlv_options['mlv_css']);?></textarea>
-          <br/>
-		  <br/>
-          <label for="mlv_anuncio_alternativo">An&uacute;ncio alternativo: (ex: código do Adsense, SmartAd, etc)</label>
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['anunc-alt']; ?></th>
+		<td>
           <textarea name="mlv_anuncio_alternativo" id="mlv_anuncio_alternativo" cols="70" rows="6" ><?=stripslashes($mlv_options['mlv_anuncio_alternativo']);?></textarea>
-          <br/>
-		  <br/>
-		  <label for="mlv_encode">Habilitar Encoding? (S&oacute; mude se as ofertas estiverem aparecendo com problemas na acentua&ccedil;&atilde;o)</label>
+		</td>
+	 </tr>
+	</table>
+
+    <table class="form-table">
+	 <tr>
+		<th scope="row" valign="top"><?php echo $lang['so-prob-acent']; ?></th>
+		<td>
 		  <select name="mlv_encode" id="mlv_encode">
-        	<option <?php if($mlv_options['mlv_encode'] == 'y') { echo 'selected'; } ?> value="y">Sim</option>
-			<option <?php if($mlv_options['mlv_encode'] == 'n') { echo 'selected'; } ?> value="n">N&atilde;o</option>
+        	<option <?php if($mlv_options['mlv_encode'] == 'y') { echo 'selected'; } ?> value="y"><?php echo $lang['sim']; ?></option>
+			<option <?php if($mlv_options['mlv_encode'] == 'n') { echo 'selected'; } ?> value="n"><?php echo $lang['nao']; ?></option>
 		  </select>
-		  <br/>
-		  <br/>
-		  <label for="mlv_function">Selecione uma fun&ccedil;&atilde;o (Novamente, s&oacute; mude se houver algum erro com uma das fun&ccedil;&otilde;es)</label>
-		  <select name="mlv_function" id="mlv_function">
-        	<option <?php if($mlv_options['mlv_function'] == 'c') { echo 'selected'; } ?> value="c">curl()</option>
-			<option <?php if($mlv_options['mlv_function'] == 'f') { echo 'selected'; } ?> value="f">fopen()</option>
-		  </select>
+		</td>
+	 </tr>
+	</table>
+
 		  <br/>
 		  <br/>
            <div class="submit" style="text-align: left;margin-top:10px">
             <input type="submit" name="mlv_atualizar" value="Atualizar" />
           </div>
-        </fieldset>
       </form>
   </div>
 <?php
@@ -537,11 +896,4 @@ function mlv_manage_options() {
 // Actions and Filters
 add_action('admin_menu', 'mlv_add_options_page');
 add_filter('the_content', 'auto_vc');
-add_action('wp_head', 'mlv_loadcss');
-add_action('simple_edit_form', 'mlv_contextual_input');
-add_action('edit_form_advanced', 'mlv_contextual_input');
-add_action('edit_page_form', 'mlv_contextual_input');
-add_action('edit_post', 'mlv_contextual_update');
-add_action('publish_post', 'mlv_contextual_update');
-add_action('save_post', 'mlv_contextual_update');
 ?>
