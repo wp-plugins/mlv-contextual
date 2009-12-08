@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: MLV Contextual
-Version: 2.0b1
+Version: 2.0b2
 Plugin URI: http://tecnoblog.net/archives/plugin-mercado-livre-vitrine-contextual-para-wordpress.php
 Description: Exibe uma vitrine de ofertas contextuais com anúncios do Mercado Livre em HTML.
 Author: Thiago Mobilon
@@ -103,6 +103,11 @@ $pais = $mlv_options['mlv_pais'];
 	$urlmlista ='listado.mercadolibre.com.ve';
 	include_once ('lang/es_AR.php');
 	break;
+		default:
+		$urlml = 'mercadolivre.com.br';
+		$urlmlista ='lista.mercadolivre.com.br';
+		include_once ('lang/pt_BR.php');
+		break;
 	}
 
 // output textarea to easily add tags in admin menu (addition to the post form)
@@ -243,7 +248,7 @@ function mlv_delete_cfields($post_ID) {
 add_action('wp_head', 'mlv_loadcss');
 function mlv_loadcss() {
          global $mlv_options;
-		 echo '<link rel="stylesheet" href="'.get_bloginfo('url').'/wp-content/plugins/mlv_contextual/mlv_stylesheet.css" type="text/css" media="screen" />'."\n";
+		 echo '<link rel="stylesheet" href="'.get_bloginfo('url').'/wp-content/plugins/mlv-contextual/mlv_stylesheet.css" type="text/css" media="screen" />'."\n";
 }
 
 //BEGIN LOOP
