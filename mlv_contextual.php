@@ -1,8 +1,8 @@
 <?php
 /*
 Plugin Name: MLV Contextual
-Version: 2.1
-Plugin URI: http://tecnoblog.net/archives/plugin-mercado-livre-vitrine-contextual-para-wordpress.php
+Version: 2.1.1
+Plugin URI: http://www.tecnoblog.net/117402/mlv-contextual-wordpress/
 Description: Exibe uma vitrine de ofertas contextuais com anúncios do Mercado Livre em HTML.
 Author: Thiago Mobilon
 Author URI: http://tecnoblog.net/
@@ -562,35 +562,40 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 			
 			foreach ($data->results as $prod) {
 				
-				$vitrine_ml.= "<td class=\"celula_ml\">";
-				 if($prod->thumbnail != '') {$vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
-				 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
-				 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
-				 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
-				 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
-				}else{
-			     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
-				 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
-				 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
-				 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
-				 $vitrine_ml.="\" title=\"".$lang["clique"]." $prod->title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=".$pais."&f=artsinfoto.gif&v=I\" /></a>";
-				}
-			     $vitrine_ml.="<div class=\"title_ml\">$prod->title<br/><a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink."\" title=\"".$lang['mais-info']." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
+				if ($minpr != '' && !($prod->price >= $minpr)) { $vitrine_ml.=''; }
+				else {
+					
+					$vitrine_ml.= "<td class=\"celula_ml\">";
+					 if($prod->thumbnail != '') {$vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
+					 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+					 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+					 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+					 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
+					}else{
+				     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
+					 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+					 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+					 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+					 $vitrine_ml.="\" title=\"".$lang["clique"]." $prod->title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=".$pais."&f=artsinfoto.gif&v=I\" /></a>";
+					}
+				     $vitrine_ml.="<div class=\"title_ml\">$prod->title<br/><a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink."\" title=\"".$lang['mais-info']." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
 
-				 $vitrine_ml.="<div class=\"preco_ml\" style=\"margin:0;padding:0;\">" . str_replace(array('BRL', 'ARS', 'CLP', 'MXN', 'VEF'), array('R$', '$', '$', '$', 'BsF'), $prod->currency_id) . " $prod->price<br /></div>";
-				
-				if (isset($prod->installments->quantity)) {
-					$vitrine_ml.="<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>";
+					 $vitrine_ml.="<div class=\"preco_ml\" style=\"margin:0;padding:0;\">" . str_replace(array('BRL', 'ARS', 'CLP', 'MXN', 'VEF'), array('R$', '$', '$', '$', 'BsF'), $prod->currency_id) . " $prod->price<br /></div>";
+
+					if (isset($prod->installments->quantity)) {
+						$vitrine_ml.="<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>";
+					}
+
+					if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '</tr>'; }
+
+					if ($mlv_options["mlv_cant"] == $cnt) break;
+
+					if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '<tr>'; $linha = 1; }
+					else { $linha++; }
+
+					$cnt++;
+					
 				}
-				
-				if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '</tr>'; }
-				
-				if ($mlv_options["mlv_cant"] == $cnt) break;
-				
-				if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '<tr>'; $linha = 1; }
-				else { $linha++; }
-				
-				$cnt++;
 				
 			}
 			
@@ -651,35 +656,40 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 			
 			foreach ($data->results as $prod) {
 				
-				$vitrine_ml.= "<td class=\"celula_ml\">";
-				 if($prod->thumbnail != '') {$vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
-				 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
-				 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
-				 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
-				 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
-				}else{
-			     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
-				 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
-				 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
-				 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
-				 $vitrine_ml.="\" title=\"".$lang["clique"]." $prod->title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=".$pais."&f=artsinfoto.gif&v=I\" /></a>";
-				}
-			     $vitrine_ml.="<div class=\"title_ml\">$prod->title<br/><a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink."\" title=\"".$lang['mais-info']." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
+				if ($minpr != '' && !($prod->price >= $minpr)) { $vitrine_ml.=''; }
+				else {
+					
+					$vitrine_ml.= "<td class=\"celula_ml\">";
+					 if($prod->thumbnail != '') {$vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
+					 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+					 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+					 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+					 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
+					}else{
+				     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
+					 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+					 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+					 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+					 $vitrine_ml.="\" title=\"".$lang["clique"]." $prod->title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=".$pais."&f=artsinfoto.gif&v=I\" /></a>";
+					}
+				     $vitrine_ml.="<div class=\"title_ml\">$prod->title<br/><a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink."\" title=\"".$lang['mais-info']." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
 
-				 $vitrine_ml.="<div class=\"preco_ml\" style=\"margin:0;padding:0;\">" . str_replace(array('BRL', 'ARS', 'CLP', 'MXN', 'VEF'), array('R$', '$', '$', '$', 'BsF'), $prod->currency_id) . " $prod->price<br /></div>";
-				
-				if (isset($prod->installments->quantity)) {
-					$vitrine_ml.="<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>";
+					 $vitrine_ml.="<div class=\"preco_ml\" style=\"margin:0;padding:0;\">" . str_replace(array('BRL', 'ARS', 'CLP', 'MXN', 'VEF'), array('R$', '$', '$', '$', 'BsF'), $prod->currency_id) . " $prod->price<br /></div>";
+
+					if (isset($prod->installments->quantity)) {
+						$vitrine_ml.="<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>";
+					}
+
+					if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '</tr>'; }
+
+					if ($mlv_options["mlv_cant"] == $cnt) break;
+
+					if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '<tr>'; $linha = 1; }
+					else { $linha++; }
+
+					$cnt++;
+					
 				}
-				
-				if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '</tr>'; }
-				
-				if ($mlv_options["mlv_cant"] == $cnt) break;
-				
-				if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '<tr>'; $linha = 1; }
-				else { $linha++; }
-				
-				$cnt++;
 				
 			}
 			
