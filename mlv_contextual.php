@@ -1,11 +1,14 @@
 <?php
 /*
 Plugin Name: MLV Contextual
-Version: 2.0b2
+Version: 2.1
 Plugin URI: http://tecnoblog.net/archives/plugin-mercado-livre-vitrine-contextual-para-wordpress.php
 Description: Exibe uma vitrine de ofertas contextuais com anúncios do Mercado Livre em HTML.
 Author: Thiago Mobilon
 Author URI: http://tecnoblog.net/
+
+Versão 2.1 - 10/2012
+* Atualizado para a nova API do MercadoLivre
 
 Versão 2.0b1 - 11 e 12/2009
 * Nova função para limpar Keywords
@@ -75,55 +78,63 @@ $pais = $mlv_options['mlv_pais'];
 	switch ($pais) {
 	case 'mla':
 	$urlml = 'mercadolibre.com.ar';
-	$urlmlista ='listado.mercadolibre.com.ar';
+	$urlmlista ='api.mercadolibre.com/sites/MLA/';
+	$urlgo ='listado.mercadolibre.com.ar';
 	include_once ('lang/es_AR.php');
 	break;
 	case 'mlb':
 	$urlml = 'mercadolivre.com.br';
-	$urlmlista ='lista.mercadolivre.com.br';
+	$urlmlista ='api.mercadolibre.com/sites/MLB/';
+	$urlgo ='lista.mercadolivre.com.br';
 	include_once ('lang/pt_BR.php');
 	break;
 	case 'mlc':
 	$urlml = 'mercadolibre.cl';
-	$urlmlista ='listado.mercadolibre.cl';
+	$urlmlista ='api.mercadolibre.com/sites/MLC/';
+	$urlgo ='listado.mercadolibre.cl';
 	include_once ('lang/es_AR.php');
 	break;
 	case 'mlo':
 	$urlml = 'mercadolibre.com.co';
-	$urlmlista ='listado.mercadolibre.com.co';
+	$urlmlista ='api.mercadolibre.com/sites/MLO/';
+	$urlgo ='listado.mercadolibre.com.co';
 	include_once ("lang/es_AR.php");
 	break;
 	case 'mlm':
 	$urlml = 'mercadolibre.com.mx';
-	$urlmlista ='listado.mercadolibre.com.mx';
+	$urlmlista ='api.mercadolibre.com/sites/MLM/';
+	$urlgo ='listado.mercadolibre.com.mx';
 	include_once ('lang/es_AR.php');
 	break;
 	case 'mlv':
 	$urlml = 'mercadolibre.com.ve';
-	$urlmlista ='listado.mercadolibre.com.ve';
+	$urlmlista ='api.mercadolibre.com/sites/MLV/';
+	$urlgo ='listado.mercadolibre.com.ve';
 	include_once ('lang/es_AR.php');
 	break;
 		default:
 		$urlml = 'mercadolivre.com.br';
-		$urlmlista ='lista.mercadolivre.com.br';
+		$urlmlista ='api.mercadolibre.com/sites/MLB/';
+		$urlgo ='lista.mercadolivre.com.br';
 		include_once ('lang/pt_BR.php');
 		break;
 	}
 
 // output textarea to easily add tags in admin menu (addition to the post form)
-add_action('simple_edit_form', 'mlv_contextual_input');
-add_action('edit_form_advanced', 'mlv_contextual_input');
-add_action('edit_page_form', 'mlv_contextual_input');
+add_action('admin_menu', 'mlv_input_custom_box');
+function mlv_input_custom_box() {
+	add_meta_box( 'mlv_input_sectionid', 'MLV_Contextual', 
+	            'mlv_input_inner_custom_box', 'post');
+}
 
-function mlv_contextual_input() {
+function mlv_input_inner_custom_box() {
 	global $post, $pais, $urlml, $urlmlista, $lang;
 
 	$mlv_id = get_post_meta($post->ID, 'mlv_id', true);  
 	$mlv_minpr = get_post_meta($post->ID, 'mlv_minpr', true);
 	$mlv_word = get_post_meta($post->ID, 'mlv_word', true);
 	
-	echo "<div id=\"mlvcontinsert\" class=\"postbox\" ><div class=\"handlediv\" title=\"Click to toggle\"></div><h3 class='hndle'><span>MLV_Contextual</span></h3><div class=\"inside\"><p id=\"jaxtag\"><span id=\"ajaxtag\"><b>".$lang['palavra-chave']."</b>:<br/><input type=\"text\" name=\"mlv_word\" id=\"mlv_word\" size=\"50%\" value=\"".$mlv_word."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['palavra-mais-tem']."</span><br/><b>ID de categoria</b>:<br/><input type=\"text\" name=\"mlv_id\" id=\"mlv_id\" size=\"50%\" value=\"".$mlv_id."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['1648-info']." <a href=\"http://www.".$urlml."/jm/ml.allcategs.AllCategsServlet\" title=\"".$lang['lista-categorias']."\">".$lang['veja-ids']."</a>.</span><br/><b>".$lang['preco-min']."</b>:<br/><input type=\"text\" name=\"mlv_minpr\" id=\"mlv_minpr\" size=\"50%\" value=\"".$mlv_minpr."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['apenas-acima']."</span></span></p></div></div>";
-
+	echo "<p id=\"jaxtag\"><span id=\"ajaxtag\"><b>".$lang['palavra-chave']."</b>:<br/><input type=\"text\" name=\"mlv_word\" id=\"mlv_word\" size=\"50%\" value=\"".$mlv_word."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['palavra-mais-tem']."</span><br/><b>ID de categoria</b>:<br/><input type=\"text\" name=\"mlv_id\" id=\"mlv_id\" size=\"50%\" value=\"".$mlv_id."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['1648-info']." <a href=\"http://www.".$urlml."/jm/ml.allcategs.AllCategsServlet\" title=\"".$lang['lista-categorias']."\">".$lang['veja-ids']."</a>.</span><br/><b>".$lang['preco-min']."</b>:<br/><input type=\"text\" name=\"mlv_minpr\" id=\"mlv_minpr\" size=\"50%\" value=\"".$mlv_minpr."\" /><input type=\"hidden\" name=\"bunny-key\" id=\"bunny-key\" value=\"".wp_create_nonce("bunny")."\" /><span class=\"howto\">".$lang['apenas-acima']."</span></span></p>";
 }
 
 //Function to clean Keywords
@@ -306,7 +317,7 @@ $vitrine_ml.= $mlv_options["mlv_anuncio_alternativo"];
 
 
 function endElement($parser, $name) { 
-global $insideitem, $tag, $title, $link, $price, $image, $currency, $encontrados, $actual, $count, $vitrine_ml, $mlv_options,$palabras, $cat, $mpago, $pais, $urlml, $urlmlista, $lang; 
+global $insideitem, $tag, $title, $link, $price, $image, $currency, $encontrados, $actual, $count, $vitrine_ml, $mlv_options,$palabras, $cat, $mpago, $pais, $urlml, $urlmlista, $urlgo, $lang; 
 
 if ($name == 'ITEM') { 
 $actual++;
@@ -454,7 +465,7 @@ function mlv_add_options_page() {
 }
 
 function vitrine_contextual(){
-global $insideitem, $item, $tag, $s, $post, $cat, $palabras, $minpr, $count, $vitrine_ml, $mlv_options, $fil1_array, $fil1_rand, $ord_array, $ord_rand, $mpago, $pais, $urlml, $urlmlista, $lang;
+global $insideitem, $item, $tag, $s, $post, $cat, $palabras, $minpr, $count, $vitrine_ml, $mlv_options, $fil1_array, $fil1_rand, $ord_array, $ord_rand, $mpago, $pais, $urlml, $urlmlista, $lang, $urlgo;
 
 
 #Enable GZip compression? 
@@ -506,135 +517,180 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 	}else{
 		  $executar_ml=false;
 	}
+	
+	$cnt = 1;
 
-if($executar_ml){
-$baseURL = "http://www.".$urlml."/jm/searchXml?as_search_both=N&gzip=".$gzip;
-if (!empty($cat)){ $baseURL .= '&as_categ_id='.$cat;}
-if (!empty($palabras)){ $baseURL .= '&as_word='.$palabras;}
-if (!empty($mlv_options["mlv_cant"])){ $baseURL .= '&as_qshow='.$mlv_options["mlv_cant"];}
-//Random Filtro 1
-if ($mlv_options["mlv_fil1"]=='R'){
-	$fil1_array=array('24_HS','PRECIO_FIJO','SOLO_SUBASTAS','UN_PESO','RECIEN_EMPIEZAN','CERTIFIED','NUEVO','USADO','MPAGO');
-	$fil1_rand=rand(0,8);
-	$baseURL .= '&as_filtro_id='.$fil1_array[$fil1_rand];
-	}elseif(!empty($mlv_options["mlv_fil1"]))
-	{$baseURL .= '&as_filtro_id='.$mlv_options["mlv_fil1"];}
-if (!empty($mlv_options["mlv_fil2"])){ $baseURL .= '&as_filtro_id2='.$mlv_options["mlv_fil2"];}
-//Random Ordem
-if ($mlv_options["mlv_ord"]=='R'){
-	$ord_array=array('AUCTION_STOP','ITEM_TITLE','HIT_PAGE','MENOS_OFERTADOS','MAS_OFERTADOS','BARATOS,CAROS');
-	$ord_rand=rand(0,6);
-	$baseURL .= '&as_order_id='.$ord_array[$ord_rand];
-	}elseif(!empty($mlv_options["mlv_ord"])){ $baseURL .= '&as_order_id='.$mlv_options["mlv_ord"];}
-if (!empty($minpr)){ $baseURL .= '&as_price_min='.$minpr;}
-
-	$xml_parser = xml_parser_create('ISO-8859-1'); 
-	xml_set_element_handler($xml_parser, "startElement", "endElement"); 
-	xml_set_character_data_handler($xml_parser, "characterData"); 
-	
-	//Selecionar Fopen ou Curl
-	
-	if(function_exists(curl_init)){
-	
-		$curl = curl_init();
-		$timeout = 0;
-	
-		curl_setopt ($curl, CURLOPT_URL, $baseURL);
-		curl_setopt ($curl, CURLOPT_RETURNTRANSFER, 1);
-		curl_setopt ($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
-	
-		$data = curl_exec($curl);
-		xml_parse($xml_parser, $data) or trigger_error("Erro ao executar o parser");
-	
-	
-		curl_close($curl);
-	
-	}else{
+	if ($executar_ml) {
 		
-		$fp = fopen($baseURL,"r") or trigger_error("Erro ao executar o parser"); 
-
-		while($data = fread($fp, 4096)) { 
-  			# begin parse 
-  			xml_parse($xml_parser, $data, feof($fp)) 
-  			or die(sprintf("XML error: %s at line %d", 
-  			xml_error_string(xml_get_error_code($xml_parser)), 
-  			xml_get_current_line_number($xml_parser))); 
-  			# end parse 
-		}
-	
-	fclose($fp); 	
-	
-	}
-	
-xml_parser_free($xml_parser);
-
-if($count>'0'){
-	$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_options["mlv_cant"]."\">Vitrine <a href=\"http://tecnoblog.net/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">Tecnoblog</a>&nbsp;&nbsp;</th></tr>";
-	$vitrine_ml.= "</table>";}
-
-}
-
-if((!empty($mlv_options["mlv_anuncio_alternativo"]))and($count=='0')){
-	
-	//Anúncio alternativo
-	$vitrine_ml.= $mlv_options["mlv_anuncio_alternativo"];
-	
-}elseif($count=='0'){ // Pau aqui. às vezes não adiciona as mais vendidas, e mesmo assim printa essa parte.
-	
-	//Exibir vitrine com mais vendidos
-	$topkw_num.=rand(1,5);
-	$topkw_random.= '_mlv_topkw'.trim($topkw_num);
-	$palabras= get_post_meta('1', $topkw_random, true);
-	$minpr='50';
-	
-	$baseURL = "http://www.".$urlml."/jm/searchXml?as_search_both=N&as_filtro_id=MPAGO&as_filtro_id=NUEVO&as_order_id=HIT_PAGE&gzip=".$gzip."&as_word=".$palabras;
-	$baseURL .= '&as_price_min='.$minpr;
-	if (!empty($mlv_options["mlv_cant"])){ $baseURL .= '&as_qshow='.$mlv_options["mlv_cant"];}
-
-		$xml_parser = xml_parser_create('ISO-8859-1'); 
-	xml_set_element_handler($xml_parser, "startElement", "endElement"); 
-	xml_set_character_data_handler($xml_parser, "characterData"); 
-	
-	//Selecionar Fopen ou Curl
-	
-	if(function_exists(curl_init)){
-	
-		$curl = curl_init();
-		$timeout = 0;
-	
-		curl_setopt ($curl, CURLOPT_URL, $baseURL);
-		curl_setopt ($curl, CURLOPT_RETURNTRANSFER, 1);
-		curl_setopt ($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
-	
-		$data = curl_exec($curl);
-		xml_parse($xml_parser, $data) or trigger_error("Erro ao executar o parser");
-	
-	
-		curl_close($curl);
-	
-	}else{
+		$baseURL = "https://".$urlmlista."search?";
+		if (!empty($cat)){ $baseURL .= '&category='.$cat;}
+		if (!empty($palabras)){ $baseURL .= '&q='.$palabras;}
 		
-		$fp = fopen($baseURL,"r") or trigger_error("Erro ao executar o parser"); 
+		if (function_exists('curl_init')) {
+			$curl = curl_init();
+			$timeout = 100;
 
-		while($data = fread($fp, 4096)) { 
-  			# begin parse 
-  			xml_parse($xml_parser, $data, feof($fp)) 
-  			or die(sprintf("XML error: %s at line %d", 
-  			xml_error_string(xml_get_error_code($xml_parser)), 
-  			xml_get_current_line_number($xml_parser))); 
-  			# end parse 
+			curl_setopt ($curl, CURLOPT_URL, $baseURL);
+			curl_setopt ($curl, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt ($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
+
+			$data = curl_exec($curl);
+
+			curl_close($curl);
+		} else {
+			$fp = fopen($baseURL,"r") or trigger_error("Erro ao executar o parser"); 
+
+			while($data = fread($fp, 4096)) { 
+	  			# begin parse 
+	  			echo $data;
+	  			# end parse 
+			}
+
+			fclose($fp);
 		}
-	
-	fclose($fp); 	
-	
+		
+		$data = json_decode($data);
+		
+		$qtd = count($data->results);
+		
+		if ($qtd > 0) {
+			$vitrine_ml.= "<table id=\"tabela_ml\" cellpadding=\"0\" cellspacing=\"0\"><tr><th class=\"mlv_vititle\" colspan=\"".$mlv_options["mlv_cant"]."\">".$mlv_options['mlv_vititle']."</th></tr>";
+			
+			$linha = 1;
+			
+			if ($mlv_options["mlv_cant"] > 4) $vitrine_ml.= '<tr>';
+			
+			foreach ($data->results as $prod) {
+				
+				$vitrine_ml.= "<td class=\"celula_ml\">";
+				 if($prod->thumbnail != '') {$vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
+				 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+				 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+				 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+				 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
+				}else{
+			     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
+				 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+				 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+				 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+				 $vitrine_ml.="\" title=\"".$lang["clique"]." $prod->title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=".$pais."&f=artsinfoto.gif&v=I\" /></a>";
+				}
+			     $vitrine_ml.="<div class=\"title_ml\">$prod->title<br/><a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink."\" title=\"".$lang['mais-info']." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
+
+				 $vitrine_ml.="<div class=\"preco_ml\" style=\"margin:0;padding:0;\">" . str_replace(array('BRL', 'ARS', 'CLP', 'MXN', 'VEF'), array('R$', '$', '$', '$', 'BsF'), $prod->currency_id) . " $prod->price<br /></div>";
+				
+				if (isset($prod->installments->quantity)) {
+					$vitrine_ml.="<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>";
+				}
+				
+				if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '</tr>'; }
+				
+				if ($mlv_options["mlv_cant"] == $cnt) break;
+				
+				if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '<tr>'; $linha = 1; }
+				else { $linha++; }
+				
+				$cnt++;
+				
+			}
+			
+			if($cnt-1!=0){
+				$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_options["mlv_cant"]."\">Powered by <a href=\"http://www.tecnoblog.net/117402/mlv-contextual-wordpress/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">MLV Contextual</a>&nbsp;&nbsp;</th></tr>";
+				$vitrine_ml.= "</table>";}
+			
+		}
+		
 	}
 	
-xml_parser_free($xml_parser);
+	if((!empty($mlv_options["mlv_anuncio_alternativo"])) && ($cnt-1 == 0)){
 
-$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_options["mlv_cant"]."\">Vitrine <a href=\"http://tecnoblog.net/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">TecnoBlog</a>&nbsp;&nbsp;</th></tr>";
-	$vitrine_ml.= "</table>";
+		//Anúncio alternativo
+		$vitrine_ml.= $mlv_options["mlv_anuncio_alternativo"];
+	
+	} elseif ($cnt-1 == 0) {
+		
+		// https://api.mercadolibre.com/sites/MLB/search?category=1051&FilterID=relevance
+		
+		$baseURL = 'https://api.mercadolibre.com/sites/MLB/search?category=1051&FilterID=relevance';
+		
+		if (function_exists('curl_init')) {
+			$curl = curl_init();
+			$timeout = 100;
 
+			curl_setopt ($curl, CURLOPT_URL, $baseURL);
+			curl_setopt ($curl, CURLOPT_RETURNTRANSFER, 1);
+			curl_setopt ($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
+
+			$data = curl_exec($curl);
+
+			curl_close($curl);
+		} else {
+			$fp = fopen($baseURL,"r") or trigger_error("Erro ao executar o parser"); 
+
+			while($data = fread($fp, 4096)) { 
+	  			# begin parse 
+	  			echo $data;
+	  			# end parse 
+			}
+
+			fclose($fp);
+		}
+		
+		$data = json_decode($data);
+		
+		$qtd = count($data->results);
+		
+		$cnt = 1;
+		
+		if ($qtd > 0) {
+			$vitrine_ml.= "<table id=\"tabela_ml\" cellpadding=\"0\" cellspacing=\"0\"><tr><th class=\"mlv_vititle\" colspan=\"".$mlv_options["mlv_cant"]."\">".$mlv_options['mlv_vititle']."</th></tr>";
+			
+			$linha = 1;
+			
+			if ($mlv_options["mlv_cant"] > 4) $vitrine_ml.= '<tr>';
+			
+			foreach ($data->results as $prod) {
+				
+				$vitrine_ml.= "<td class=\"celula_ml\">";
+				 if($prod->thumbnail != '') {$vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
+				 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+				 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+				 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+				 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
+				}else{
+			     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
+				 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+				 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+				 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+				 $vitrine_ml.="\" title=\"".$lang["clique"]." $prod->title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=".$pais."&f=artsinfoto.gif&v=I\" /></a>";
+				}
+			     $vitrine_ml.="<div class=\"title_ml\">$prod->title<br/><a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink."\" title=\"".$lang['mais-info']." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
+
+				 $vitrine_ml.="<div class=\"preco_ml\" style=\"margin:0;padding:0;\">" . str_replace(array('BRL', 'ARS', 'CLP', 'MXN', 'VEF'), array('R$', '$', '$', '$', 'BsF'), $prod->currency_id) . " $prod->price<br /></div>";
+				
+				if (isset($prod->installments->quantity)) {
+					$vitrine_ml.="<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>";
+				}
+				
+				if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '</tr>'; }
+				
+				if ($mlv_options["mlv_cant"] == $cnt) break;
+				
+				if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '<tr>'; $linha = 1; }
+				else { $linha++; }
+				
+				$cnt++;
+				
+			}
+			
+			if($cnt-1!=0){
+				$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_options["mlv_cant"]."\">Powered by <a href=\"http://www.tecnoblog.net/117402/mlv-contextual-wordpress/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">MLV Contextual</a>&nbsp;&nbsp;</th></tr>";
+				$vitrine_ml.= "</table>";}
+			
+		}
+		
 	}
+	
 }
 
 // Tela do Painel
@@ -683,7 +739,6 @@ function mlv_manage_options() {
 		    <option <?php if($mlv_options['mlv_pais'] == 'mla') { echo 'selected'; } ?> value="mla">Argentina</option>
         	<option <?php if($mlv_options['mlv_pais'] == 'mlb') { echo 'selected'; } ?> value="mlb">Brasil</option>
         	<option <?php if($mlv_options['mlv_pais'] == 'mlc') { echo 'selected'; } ?> value="mlc">Chile</option>
-		    <option <?php if($mlv_options['mlv_pais'] == 'mlo') { echo 'selected'; } ?> value="mlo">Colômbia</option>
         	<option <?php if($mlv_options['mlv_pais'] == 'mlm') { echo 'selected'; } ?> value="mlm">México</option>
         	<option <?php if($mlv_options['mlv_pais'] == 'mlv') { echo 'selected'; } ?> value="mlv">Venezuela</option>
 		  </select>
@@ -691,6 +746,7 @@ function mlv_manage_options() {
 	 </tr>
 	</table>
 
+	<?php/*
     <table class="form-table">
 	 <tr>
 		<th scope="row" valign="top"><?php echo $lang['origem-cont']; ?>:</th>
@@ -713,6 +769,7 @@ function mlv_manage_options() {
 		</td>
 	 </tr>
 	</table>
+	*/?>
 
     <table class="form-table">
 	 <tr>
@@ -807,6 +864,7 @@ function mlv_manage_options() {
 	 </tr>
 	</table>
 
+	<?php /*
     <table class="form-table">
 	 <tr>
 		<th scope="row" valign="top"><?php echo $lang['ord-por']; ?>:</th>
@@ -866,7 +924,7 @@ function mlv_manage_options() {
 		</td>
 	 </tr>
 	</table>
-
+*/?>
     <table class="form-table">
 	 <tr>
 		<th scope="row" valign="top"><?php echo $lang['anunc-alt']; ?></th>
