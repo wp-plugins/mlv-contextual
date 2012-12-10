@@ -1,11 +1,14 @@
 <?php
 /*
 Plugin Name: MLV Contextual
-Version: 2.1.3
+Version: 2.1.4
 Plugin URI: http://www.tecnoblog.net/117402/mlv-contextual-wordpress/
 Description: Exibe uma vitrine de ofertas contextuais com anúncios do Mercado Livre em HTML.
 Author: Thiago Mobilon
 Author URI: http://tecnoblog.net/
+
+Versão 2.1.4 - 12/2012
+* Correção de bug de duplicação da vitrine
 
 Versão 2.1 - 10/2012
 * Atualizado para a nova API do MercadoLivre
@@ -465,8 +468,11 @@ function mlv_add_options_page() {
 }
 
 function vitrine_contextual(){
-global $insideitem, $item, $tag, $s, $post, $cat, $palabras, $minpr, $count, $vitrine_ml, $mlv_options, $fil1_array, $fil1_rand, $ord_array, $ord_rand, $mpago, $pais, $urlml, $urlmlista, $lang, $urlgo;
+global $insideitem, $item, $tag, $s, $post, $cat, $palabras, $minpr, $count, $vitrine_ml, $mlv_options, $fil1_array, $fil1_rand, $ord_array, $ord_rand, $mpago, $pais, $urlml, $urlmlista, $lang, $urlgo, $executou;
 
+if ($executou == true) { return false; }
+
+$executou = true;
 
 #Enable GZip compression? 
 $gzip = 'y';
