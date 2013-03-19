@@ -1,11 +1,15 @@
 <?php
 /*
 Plugin Name: MLV Contextual
-Version: 2.1.4
+Version: 2.1.5
 Plugin URI: http://www.tecnoblog.net/117402/mlv-contextual-wordpress/
 Description: Exibe uma vitrine de ofertas contextuais com anúncios do Mercado Livre em HTML.
 Author: Thiago Mobilon
 Author URI: http://tecnoblog.net/
+
+Versão 2.1.5 - 03/2013
+* Suporte ao ML Colombia
+* Widgets :D
 
 Versão 2.1.4 - 12/2012
 * Correção de bug de duplicação da vitrine
@@ -99,7 +103,7 @@ $pais = $mlv_options['mlv_pais'];
 	break;
 	case 'mlo':
 	$urlml = 'mercadolibre.com.co';
-	$urlmlista ='api.mercadolibre.com/sites/MLO/';
+	$urlmlista ='api.mercadolibre.com/sites/MCO/';
 	$urlgo ='listado.mercadolibre.com.co';
 	include_once ("lang/es_AR.php");
 	break;
@@ -467,12 +471,161 @@ function mlv_add_options_page() {
 		add_options_page('MLV Contextual Options', 'MLV Contextual', 8, basename(__FILE__), 'mlv_manage_options');
 }
 
+function widget_contextual($mlv_cant, $mlv_ancho) {
+	global $insideitem, $item, $tag, $s, $post, $cat, $palabras, $minpr, $count, $vitrine_ml, $mlv_options, $fil1_array, $fil1_rand, $ord_array, $ord_rand, $mpago, $pais, $urlml, $urlmlista, $lang, $urlgo, $executou;
+	
+	$vitrine_ml = '';
+	
+	#Enable GZip compression? 
+	$gzip = 'y';
+
+	# Other Configs
+	$insideitem = false; 
+	$item = array();
+	$encontrados='';
+	$tag = '';
+	$cat='';
+	$palabras='';
+	$minpr='';
+	$executar_ml='';
+
+
+		if(empty($s)){
+		$minpr=urlencode(get_post_meta($post->ID, 'mlv_minpr', true));
+		$cat=urlencode(get_post_meta($post->ID, 'mlv_id', true));
+
+	# COMECO - edicao para suporte do palavras de e moneticao - COMECO
+		# inclusao by bernabauer.com
+
+		if($mlv_options['mlv_ctxwords'] == 'mlvc') {
+			$palabras.=trim(get_post_meta($post->ID, 'mlv_word', true));
+		 } else {
+			$palabras.=trim(get_post_meta($post->ID, 'mlv_word', true));
+			$current_plugins = get_option('active_plugins'); 
+			if (!in_array('palavras-de-monetizacao/palavrasmonetizacao.php', $current_plugins)) { 
+				$palabras.=trim(get_post_meta($post->ID, 'mlv_word', true));
+			} else {
+	$array_pm = pm_get_words();
+	$palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
+			}
+		}
+	# FIM - edicao para suporte do palavras de e moneticao - FIM
+
+		$palabras= trat($palabras);
+		$palabras=urlencode($palabras);
+		if((empty($palabras))and(empty($cat))){
+			$executar_ml=false;
+			}else{
+			$executar_ml=true;
+			}
+		}elseif(!empty($s)){
+			  $palabras = trat($palabras);
+			  $palabras = urlencode($palabras);
+			  $executar_ml=true;
+		}else{
+			  $executar_ml=false;
+		}
+
+		$cnt = 1;
+
+			$baseURL = "https://".$urlmlista."search?";
+			if (!empty($cat)){ $baseURL .= '&category='.$cat;}
+			if (!empty($palabras)){ $baseURL .= '&q='.$palabras;}
+			
+			if ($palabras == "") $baseURL = 'https://api.mercadolibre.com/sites/MLB/search?category=1051&FilterID=relevance';
+
+			if (function_exists('curl_init')) {
+				$curl = curl_init();
+				$timeout = 100;
+
+				curl_setopt ($curl, CURLOPT_URL, $baseURL);
+				curl_setopt ($curl, CURLOPT_RETURNTRANSFER, 1);
+				curl_setopt ($curl, CURLOPT_CONNECTTIMEOUT, $timeout);
+
+				$data = curl_exec($curl);
+
+				curl_close($curl);
+			} else {
+				$fp = fopen($baseURL,"r") or trigger_error("Erro ao executar o parser"); 
+
+				while($data = fread($fp, 4096)) { 
+		  			# begin parse 
+		  			echo $data;
+		  			# end parse 
+				}
+
+				fclose($fp);
+			}
+
+			$data = json_decode($data);
+
+			$qtd = count($data->results);
+
+			if ($qtd > 0) {
+
+				$vitrine_ml .= "<table cellpadding=\"0\" cellspacing=\"0\">";
+
+				$linha = 1;
+
+				if ($mlv_cant > 4) $vitrine_ml.= '<tr>';
+
+				foreach ($data->results as $prod) {
+
+					if ($minpr != '' && !($prod->price >= $minpr)) { $vitrine_ml.=''; }
+					else {
+
+						$vitrine_ml.= "<td class=\"celula_ml\" style=\"padding:8px 0;" . ($cnt != $mlv_cant ? "border-bottom:1px solid #ededed;" : "") . "\">";
+						 if($prod->thumbnail != '') {$vitrine_ml.="<a style=\"float:left;\" href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
+						 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+						 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+						 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+						 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
+						}else{
+					     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
+						 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
+						 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
+						 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
+						 $vitrine_ml.="\" title=\"".$lang["clique"]." $prod->title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"http://img.mercadolivre.com.br/jm/img?s=".$pais."&f=artsinfoto.gif&v=I\" /></a>";
+						}
+					     $vitrine_ml.="<div style=\"margin-left:90px;\"><div class=\"title_ml\">$prod->title<br/><a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink."\" title=\"".$lang['mais-info']." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/texto');\" rel=\"nofollow\" target=\"_blank\"><b>Mais info&raquo;</b></a></div>";
+
+						 $vitrine_ml.="<div class=\"preco_ml\" style=\"margin:0;padding:0;\">" . str_replace(array('BRL', 'ARS', 'CLP', 'MXN', 'VEF'), array('R$', '$', '$', '$', 'BsF'), $prod->currency_id) . " $prod->price<br /></div>";
+
+						if (isset($prod->installments->quantity)) {
+							$vitrine_ml.=/*"<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>"*/"</div>";
+						}
+
+						if ($linha == $mlv_ancho) { $vitrine_ml.= '</tr>'; }
+
+						if ($mlv_cant == $cnt) break;
+
+						if ($linha == $mlv_ancho) { $vitrine_ml.= '<tr>'; $linha = 1; }
+						else { $linha++; }
+
+						$cnt++;
+
+					}
+
+				}
+
+				$vitrine_ml.= "</table>";
+
+			}
+		
+		echo $vitrine_ml;
+	
+}
+
 function vitrine_contextual(){
 global $insideitem, $item, $tag, $s, $post, $cat, $palabras, $minpr, $count, $vitrine_ml, $mlv_options, $fil1_array, $fil1_rand, $ord_array, $ord_rand, $mpago, $pais, $urlml, $urlmlista, $lang, $urlgo, $executou;
 
-if ($executou == true) { return false; }
+if ($executou == true && $sidebar != true) { return false; }
+
+$mlv_cant = $mlv_options["mlv_cant"];
+$mlv_ancho = $mlv_options["mlv_ancho"];
 
 $executou = true;
+$executouSide = true;
 
 #Enable GZip compression? 
 $gzip = 'y';
@@ -560,11 +713,11 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 		$qtd = count($data->results);
 		
 		if ($qtd > 0) {
-			$vitrine_ml.= "<table id=\"tabela_ml\" cellpadding=\"0\" cellspacing=\"0\"><tr><th class=\"mlv_vititle\" colspan=\"".$mlv_options["mlv_cant"]."\">".$mlv_options['mlv_vititle']."</th></tr>";
+			$vitrine_ml.= "<table id=\"tabela_ml\" cellpadding=\"0\" cellspacing=\"0\"><tr><th class=\"mlv_vititle\" colspan=\"".$mlv_cant."\">".$mlv_options['mlv_vititle']."</th></tr>";
 			
 			$linha = 1;
 			
-			if ($mlv_options["mlv_cant"] > 4) $vitrine_ml.= '<tr>';
+			if ($mlv_cant > 4) $vitrine_ml.= '<tr>';
 			
 			foreach ($data->results as $prod) {
 				
@@ -592,11 +745,11 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 						$vitrine_ml.="<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>";
 					}
 
-					if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '</tr>'; }
+					if ($mlv_cant > 4 && $linha == $mlv_ancho) { $vitrine_ml.= '</tr>'; }
 
-					if ($mlv_options["mlv_cant"] == $cnt) break;
+					if ($mlv_cant == $cnt) break;
 
-					if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '<tr>'; $linha = 1; }
+					if ($mlv_cant > 4 && $linha == $mlv_ancho) { $vitrine_ml.= '<tr>'; $linha = 1; }
 					else { $linha++; }
 
 					$cnt++;
@@ -606,7 +759,7 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 			}
 			
 			if($cnt-1!=0){
-				$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_options["mlv_cant"]."\">Powered by <a href=\"http://www.tecnoblog.net/117402/mlv-contextual-wordpress/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">MLV Contextual</a>&nbsp;&nbsp;</th></tr>";
+				$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_cant."\">Powered by <a href=\"http://www.tecnoblog.net/117402/mlv-contextual-wordpress/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">MLV Contextual</a>&nbsp;&nbsp;</th></tr>";
 				$vitrine_ml.= "</table>";}
 			
 		}
@@ -654,11 +807,11 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 		$cnt = 1;
 		
 		if ($qtd > 0) {
-			$vitrine_ml.= "<table id=\"tabela_ml\" cellpadding=\"0\" cellspacing=\"0\"><tr><th class=\"mlv_vititle\" colspan=\"".$mlv_options["mlv_cant"]."\">".$mlv_options['mlv_vititle']."</th></tr>";
+			$vitrine_ml.= "<table id=\"tabela_ml\" cellpadding=\"0\" cellspacing=\"0\"><tr><th class=\"mlv_vititle\" colspan=\"".$mlv_cant."\">".$mlv_options['mlv_vititle']."</th></tr>";
 			
 			$linha = 1;
 			
-			if ($mlv_options["mlv_cant"] > 4) $vitrine_ml.= '<tr>';
+			if ($mlv_cant > 4) $vitrine_ml.= '<tr>';
 			
 			foreach ($data->results as $prod) {
 				
@@ -686,11 +839,11 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 						$vitrine_ml.="<div class=\"mpago_ml\" style=\"margin:0;padding:0;\">até ".$prod->installments->quantity."x de ".str_replace(array('BRL'), array('R$'), $prod->currency_id).' '.$prod->installments->amount."</div>";
 					}
 
-					if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '</tr>'; }
+					if ($mlv_cant > 4 && $linha == $mlv_ancho) { $vitrine_ml.= '</tr>'; }
 
-					if ($mlv_options["mlv_cant"] == $cnt) break;
+					if ($mlv_cant == $cnt) break;
 
-					if ($mlv_options["mlv_cant"] > 4 && $linha == $mlv_options["mlv_ancho"]) { $vitrine_ml.= '<tr>'; $linha = 1; }
+					if ($mlv_cant > 4 && $linha == $mlv_ancho) { $vitrine_ml.= '<tr>'; $linha = 1; }
 					else { $linha++; }
 
 					$cnt++;
@@ -700,7 +853,7 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 			}
 			
 			if($cnt-1!=0){
-				$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_options["mlv_cant"]."\">Powered by <a href=\"http://www.tecnoblog.net/117402/mlv-contextual-wordpress/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">MLV Contextual</a>&nbsp;&nbsp;</th></tr>";
+				$vitrine_ml.="<tr><th class=\"powered_by\" colspan=\"".$mlv_cant."\">Powered by <a href=\"http://www.tecnoblog.net/117402/mlv-contextual-wordpress/\" title=\"Plugin MLV Contextual para WordPress\" target=\"_blank\">MLV Contextual</a>&nbsp;&nbsp;</th></tr>";
 				$vitrine_ml.= "</table>";}
 			
 		}
@@ -755,6 +908,7 @@ function mlv_manage_options() {
 		    <option <?php if($mlv_options['mlv_pais'] == 'mla') { echo 'selected'; } ?> value="mla">Argentina</option>
         	<option <?php if($mlv_options['mlv_pais'] == 'mlb') { echo 'selected'; } ?> value="mlb">Brasil</option>
         	<option <?php if($mlv_options['mlv_pais'] == 'mlc') { echo 'selected'; } ?> value="mlc">Chile</option>
+			<option <?php if($mlv_options['mlv_pais'] == 'mlo') { echo 'selected'; } ?> value="mlo">Colômbia</option>
         	<option <?php if($mlv_options['mlv_pais'] == 'mlm') { echo 'selected'; } ?> value="mlm">México</option>
         	<option <?php if($mlv_options['mlv_pais'] == 'mlv') { echo 'selected'; } ?> value="mlv">Venezuela</option>
 		  </select>
@@ -975,4 +1129,104 @@ function mlv_manage_options() {
 // Actions and Filters
 add_action('admin_menu', 'mlv_add_options_page');
 add_filter('the_content', 'auto_vc');
+
+/**
+ * Adds Foo_Widget widget.
+ */
+class Mlv_Widget extends WP_Widget {
+
+	/**
+	 * Register widget with WordPress.
+	 */
+	public function __construct() {
+		parent::__construct(
+	 		'mlv_widget', // Base ID
+			'MLV Contextual', // Name
+			array( 'description' => __( 'Anúncios do MLV Contextual', 'text_domain' ), ) // Args
+		);
+	}
+
+	/**
+	 * Front-end display of widget.
+	 *
+	 * @see WP_Widget::widget()
+	 *
+	 * @param array $args     Widget arguments.
+	 * @param array $instance Saved values from database.
+	 */
+	public function widget( $args, $instance ) {
+		if (is_single()) {
+			extract( $args );
+			$title = apply_filters( 'widget_title', $instance['title'] );
+			
+			$qtd = apply_filters( 'widget_title', $instance['qtd'] );
+			if ($qtd == '') $qtd = 2;
+
+			echo $before_widget;
+			if ( ! empty( $title ) )
+				echo $before_title . $title . $after_title;
+				
+			global $vitrine_ml;
+			$vitrine_ml = '';
+			widget_contextual($qtd,1);
+			
+			echo $after_widget;
+		}
+	}
+
+	/**
+	 * Sanitize widget form values as they are saved.
+	 *
+	 * @see WP_Widget::update()
+	 *
+	 * @param array $new_instance Values just sent to be saved.
+	 * @param array $old_instance Previously saved values from database.
+	 *
+	 * @return array Updated safe values to be saved.
+	 */
+	public function update( $new_instance, $old_instance ) {
+		$instance = array();
+		$instance['title'] = strip_tags( $new_instance['title'] );
+
+		return $instance;
+	}
+
+	/**
+	 * Back-end widget form.
+	 *
+	 * @see WP_Widget::form()
+	 *
+	 * @param array $instance Previously saved values from database.
+	 */
+	public function form( $instance ) {
+		if ( isset( $instance[ 'title' ] ) ) {
+			$title = $instance[ 'title' ];
+		}
+		else {
+			$title = __( 'Anúncios Relacionados', 'text_domain' );
+		}
+		
+		if ( isset( $instance[ 'qtd' ] ) ) {
+			$qtd = $instance[ 'qtd' ];
+		}
+		else {
+			$qtd = __( '2', 'text_domain' );
+		}
+		?>
+		<p>
+		<label for="<?php echo $this->get_field_id( 'title' ); ?>">Título:</label> 
+		<input class="widefat" id="<?php echo $this->get_field_id( 'title' ); ?>" name="<?php echo $this->get_field_name( 'title' ); ?>" type="text" value="<?php echo esc_attr( $title ); ?>" />
+		</p>
+		<p>
+		<label for="<?php echo $this->get_field_id( 'qtd' ); ?>">Quantidade de anúncios:</label> 
+		<input class="widefat" id="<?php echo $this->get_field_id( 'qtd' ); ?>" name="<?php echo $this->get_field_name( 'qtd' ); ?>" type="text" value="<?php echo esc_attr( $qtd ); ?>" />
+		</p>
+		<?php
+	}
+
+} // class Foo_Widget
+
+// register Foo_Widget widget
+add_action( 'widgets_init', create_function( '', 'register_widget( "mlv_widget" );' ) );
+
 ?>
