@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: MLV Contextual
-Version: 2.1.5
+Version: 2.1.6
 Plugin URI: http://www.tecnoblog.net/117402/mlv-contextual-wordpress/
 Description: Exibe uma vitrine de ofertas contextuais com anúncios do Mercado Livre em HTML.
 Author: Thiago Mobilon
@@ -581,7 +581,7 @@ function widget_contextual($mlv_cant, $mlv_ancho) {
 						 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
 						 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
 						}else{
-					     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
+					     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
 						 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
 						 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
 						 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
@@ -731,7 +731,7 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 					 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
 					 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
 					}else{
-				     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
+				     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
 					 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
 					 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
 					 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
@@ -825,7 +825,7 @@ $palabras.= str_replace  ( " "  , "+"  , $array_pm[0] );
 					 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
 					 $vitrine_ml.="\" title=\"".$lang["clique"]." $title\" onclick=\"javascript: pageTracker._trackPageview('/mlv_contextual/imagem');\" rel=\"nofollow\" target=\"_blank\"><img src=\"$prod->thumbnail\" alt=\"$prod->title\" /></a>";
 					}else{
-				     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON9&amp;go=".$prod->permalink;
+				     $vitrine_ml.="<a href=\"http://pmstrk.".$urlml."/jm/PmsTrk?tool=".$mlv_options["mlv_afidml"]."&amp;word=pmsressellerTMOBILON&amp;go=".$prod->permalink;
 					 //if(!empty($palabras)){$vitrine_ml.="$palabras";}
 					 //if(!empty($cat)){$vitrine_ml.="_CategID_$cat";}
 					 //if(!empty($minpr)){$vitrine_ml.="_PriceMin_$minpr";}
